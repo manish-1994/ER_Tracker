@@ -1,0 +1,17 @@
+/* stylelint-disable at-rule-no-unknown */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+/* stylelint-enable at-rule-no-unknown */
+
+/* Custom styles for the cyber‑punk theme */
+body {
+  @apply bg-gray-900 text-gray-100 font-sans antialiased;
+}
+
+/* Example utility class for neon text */
+.neon {
+  text-shadow: 0 0 5px rgba(0, 255, 255, 0.8),
+               0 0 10px rgba(0, 255, 255, 0.6),
+               0 0 20px rgba(0, 255, 255, 0.4);
+}
