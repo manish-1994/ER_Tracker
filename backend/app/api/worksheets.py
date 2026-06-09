@@ -25,7 +25,7 @@ def get_sheet(sheet_id: int, db: Session = Depends(get_db)):
     }
 
 # New endpoint to list all worksheets (or return empty list if none)
-@router.get("/", response_model=dict)
+@router.get("", response_model=dict)
 def list_worksheets(db: Session = Depends(get_db)):
     """Return a list of worksheets.
 

@@ -20,8 +20,9 @@ const Profile = () => {
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;
       }
-      // Note: omit leading slash so axios respects the baseURL (/api)
-      const { data } = await api.get("profile", { headers });
+        // Note: omit leading slash so axios respects the baseURL (/api)
+        // Use no‑trailing‑slash path to match the backend's new route definition
+        const { data } = await api.get("profile", { headers });
       console.log("Profile fetch successful", data);
       return data;
     } catch (err) {
@@ -33,8 +34,8 @@ const Profile = () => {
 
   // Mutations for updating profile and password
   const updateProfile = useMutation({
-    mutationFn: async (updates: any) => {
-      await api.put("/profile", updates);
+        mutationFn: async (updates: any) => {
+          await api.put("profile", updates);
     },
     // Invalidate the "profile" query after successful update using the proper filter object
     // Invalidate the "profile" query after a successful update using the correct API signature
@@ -42,8 +43,8 @@ const Profile = () => {
   });
 
   const changePassword = useMutation({
-    mutationFn: async (payload: any) => {
-      await api.put("/profile/password", payload);
+        mutationFn: async (payload: any) => {
+          await api.put("profile/password", payload);
     },
     onSuccess: () => alert("Password updated"),
   });
@@ -124,9 +125,12 @@ const Profile = () => {
           </form>
         </div>
         {/* Last Login */}
-        <div className="text-center text-gray-400 mt-6">
-          Last login: {new Date(data.last_login).toLocaleString()}
-        </div>
+        {/* Display last login if available */}
+        {data?.last_login && (
+          <div className="text-center text-gray-400 mt-6">
+            Last login: {new Date(data.last_login).toLocaleString()}
+          </div>
+        )}
       </motion.div>
     </section>
   );

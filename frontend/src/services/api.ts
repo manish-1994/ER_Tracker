@@ -1,8 +1,9 @@
 import axios from "axios";
+import { API_BASE_URL } from "../config/appConfig";
 
-// Configure axios instance to point to the running backend (port 8001) and prepend the API prefix
+// Configure axios instance to point to the running backend using centralized config
 const api = axios.create({
-  baseURL: "http://127.0.0.1:8001/api",
+  baseURL: API_BASE_URL,
 });
 
 
@@ -29,5 +30,9 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// Activate / Deactivate user endpoints (if backend supports)
+export const activateUser = (id: number) => api.put(`/users/${id}/activate`);
+export const deactivateUser = (id: number) => api.put(`/users/${id}/deactivate`);
 
 export default api;

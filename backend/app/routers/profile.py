@@ -17,22 +17,23 @@ from sqlalchemy.orm import Session
 from ..auth.dependencies import get_db
 from ..auth.dependencies import get_current_active_user
 from ..auth.models import User, Role, Permission
-from passlib.context import CryptContext
+# Removed passlib import; using SHA256 hashing instead
 
 router = APIRouter(prefix="/profile", tags=["profile"])
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Simple SHA256 hashing for passwords
+import hashlib
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    return hashlib.sha256(plain_password.encode('utf-8')).hexdigest() == hashed_password
 
 
 def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
+    return hashlib.sha256(password.encode('utf-8')).hexdigest()
 
 
-@router.get("/", response_model=dict)
+@router.get("", response_model=dict)
 def read_profile(current_user: User = Depends(get_current_active_user)):
     print("PROFILE ROUTE REACHED")
     """Return profile information for the authenticated user.

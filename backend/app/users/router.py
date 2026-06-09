@@ -13,7 +13,7 @@ def read_current_user(current_user = Depends(auth_dep.get_current_user)):
     return current_user
 
 
-@router.get("/", response_model=list[auth_schemas.UserSchema])
+@router.get("", response_model=list[auth_schemas.UserSchema])
 def list_users(db: Session = Depends(auth_dep.get_db),
               _: bool = Depends(auth_dep.require_role("SuperAdmin"))):
     return db.query(auth_models.User).all()

@@ -10,6 +10,7 @@
     "autoprefixer": "^10.5.0",
     "framer-motion": "^12.40.0",
     "lucide-react": "^1.17.0",
+    "node-fetch": "^2.7.0",
     "postcss": "^8.5.15",
     "recharts": "^3.8.1",
     "tailwindcss": "^4.3.0"

@@ -6,7 +6,7 @@ from ..auth.models import Role, Permission
 
 router = APIRouter(prefix="/api/roles", tags=["roles"])
 
-@router.get("/", response_model=list[dict])
+@router.get("", response_model=list[dict])
 def list_roles(db: Session = Depends(get_db), _: dict = Depends(require_role("SuperAdmin"))):
     """Return all roles with their permissions."""
     roles = db.query(Role).all()
@@ -20,7 +20,7 @@ def list_roles(db: Session = Depends(get_db), _: dict = Depends(require_role("Su
         })
     return result
 
-@router.post("/", status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_201_CREATED)
 def create_role(name: str, description: str = "", permission_ids: list[int] = [], db: Session = Depends(get_db), _: dict = Depends(require_role("SuperAdmin"))):
     if db.query(Role).filter(Role.name == name).first():
         raise HTTPException(status_code=400, detail="Role already exists")

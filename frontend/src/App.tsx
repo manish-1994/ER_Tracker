@@ -7,6 +7,8 @@ import Workbooks from "./pages/Workbooks";
 import Profile from "./pages/Profile";
 import Logout from "./pages/Logout";
 import UserManagement from "./pages/UserManagement";
+import AdminControlCenter from "./pages/AdminControlCenter";
+// Removed duplicate UsersManagement import; using UserManagement as the single page
 import MainLayout from "./layouts/MainLayout";
 import { AuthProvider } from "./context/AuthContext";
 import RootRedirect from "./components/RootRedirect";
@@ -31,14 +33,24 @@ const App: React.FC = () => {
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="workbooks" element={<Workbooks />} />
           <Route path="profile" element={<Profile />} />
-          <Route
-            path="users"
-            element={
-              <ProtectedRoute requiredRole="SuperAdmin">
-                <UserManagement />
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="users"
+              element={
+                <ProtectedRoute requiredRole="SuperAdmin">
+                  <UserManagement />
+                </ProtectedRoute>
+              }
+            />
+            {/* Admin Control Center – SuperAdmin only */}
+            <Route
+              path="admin"
+              element={
+                <ProtectedRoute requiredRole="SuperAdmin">
+                  <AdminControlCenter />
+                </ProtectedRoute>
+              }
+            />
+          {/* Consolidated user management route – using UserManagement component */}
           <Route path="logout" element={<Logout />} />
         </Route>
         </Routes>

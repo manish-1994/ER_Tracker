@@ -13,7 +13,7 @@ def get_db():
     finally:
         db.close()
 
-@router.get("/", response_model=list[dict])
+@router.get("", response_model=list[dict])
 def list_workbooks(db: Session = Depends(get_db)):
     # Convert ORM objects to plain dictionaries for FastAPI response validation
     workbooks = db.query(Workbook).all()

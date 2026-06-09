@@ -8,5 +8,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 1 day
     # Algorithm used for JWT encoding/decoding (required by utils.create_access_token)
     ALGORITHM: str = "HS256"
+    # Feature flag to enable/disable the SuperAdmin control panel
+    ENABLE_ADMIN_PANEL: bool = True
 
 settings = Settings()

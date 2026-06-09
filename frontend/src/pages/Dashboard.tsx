@@ -19,17 +19,11 @@ const chartData = [
 
 /** Cyber‑punk styled dashboard */
 const Dashboard = () => {
+  console.log('Rendering SidebarB');
   return (
     <section className="min-h-screen bg-[#070B14] text-gray-100 p-6">
       <div className="flex">
         {/* Sidebar */}
-        <aside className="w-64 hidden md:block bg-black/60 backdrop-blur-md border-r border-cyan-500/30">
-          <nav className="flex flex-col p-4 space-y-4">
-            <a href="/" className="text-cyan-400 hover:text-cyan-300">Dashboard</a>
-            <a href="/workbooks" className="text-cyan-400 hover:text-cyan-300">Workbooks</a>
-            <a href="/profile" className="text-cyan-400 hover:text-cyan-300">Profile</a>
-          </nav>
-        </aside>
         <main className="flex-1 ml-0 md:ml-4">
           {/* Top Nav */}
           <header className="flex justify-between items-center mb-6">
@@ -57,7 +51,7 @@ const Dashboard = () => {
             ))}
           </div>
           {/* Chart */}
-          <div className="bg-black/50 backdrop-blur-lg p-4 rounded border border-cyan-500/30 h-64">
+          <div className="bg-black/50 backdrop-blur-lg p-4 rounded border border-cyan-500/30 min-h-[300px] h-auto">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
                 <XAxis dataKey="name" stroke="#00ffff" />
