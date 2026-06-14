@@ -500,7 +500,7 @@ const Workbooks = () => {
                 columns={columns}
                 data={filteredData}
                 actions={(row) => (
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-1.5">
                     <CyberButton
                       size="sm"
                       variant="secondary"

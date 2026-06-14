@@ -24,7 +24,7 @@ export const CyberModal: FC<CyberModalProps> = ({ isOpen, onClose, title, childr
           
           {/* Modal Container */}
           <motion.div
-            className="relative bg-cyberCard border border-primary/45 rounded-xl max-w-lg w-full p-6 shadow-[0_0_30px_rgba(0,229,255,0.2)] z-10 overflow-hidden font-mono"
+            className="relative bg-cyberCard border border-primary/45 rounded-xl max-w-lg w-full max-h-[calc(100vh-2rem)] flex flex-col p-6 shadow-[0_0_30px_rgba(0,229,255,0.2)] z-10 overflow-hidden font-mono"
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -37,7 +37,7 @@ export const CyberModal: FC<CyberModalProps> = ({ isOpen, onClose, title, childr
             <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-primary" />
 
             {/* Header */}
-            <div className="flex justify-between items-center mb-6 pb-2 border-b border-cyan-500/25">
+            <div className="flex justify-between items-center mb-6 pb-2 border-b border-cyan-500/25 flex-shrink-0">
               {title && (
                 <h2 className="text-xl font-bold uppercase text-primary tracking-wider neon-text-primary">
                   {title}
@@ -52,7 +52,7 @@ export const CyberModal: FC<CyberModalProps> = ({ isOpen, onClose, title, childr
             </div>
 
             {/* Body */}
-            <div className="text-text">
+            <div className="text-text flex-1 overflow-y-auto min-h-0 pr-1">
               {children}
             </div>
           </motion.div>

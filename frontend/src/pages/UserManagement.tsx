@@ -618,7 +618,7 @@ try {
       </AnimatePresence>
 
       {/* ── Metrics Cards ── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <CyberStatCard title="Total Registered Nodes" value={totalUsers} variant="primary" />
         <CyberStatCard title="Active Clearances" value={activeUsers} variant="success" />
         <CyberStatCard title="Suspended Nodes" value={inactiveUsers} variant="danger" />

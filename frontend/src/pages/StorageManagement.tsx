@@ -439,7 +439,7 @@ export const StorageManagement: React.FC = () => {
       )}
       
       {/* Storage Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <CyberStatCard
           title="Database Used"
           value={dbLoading ? "..." : formatBytes(dbUsage?.used ?? 0)}
@@ -631,7 +631,7 @@ export const StorageManagement: React.FC = () => {
         <h3 className="text-sm font-bold tracking-widest text-primary uppercase border-b border-cyan-500/25 pb-2">
           Database Health
         </h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-center">
           <div>
             <div className="text-2xl font-mono font-bold text-primary">
               {healthLoading ? "..." : dbHealth?.totalTables ?? 0}
@@ -664,7 +664,7 @@ export const StorageManagement: React.FC = () => {
         <h3 className="text-sm font-bold tracking-widest text-secondary uppercase border-b border-purple-500/25 pb-2">
           Cleanup Center
         </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <CyberButton
             onClick={() => openConfirmation("delete-logs")}
             variant="danger"

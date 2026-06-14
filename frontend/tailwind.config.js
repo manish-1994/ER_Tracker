@@ -5,6 +5,14 @@ module.exports = {
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
+    screens: {
+      'xs': '320px',
+      'sm': '375px',
+      'ms': '425px',
+      'md': '768px',
+      'lg': '1024px',
+      'xl': '1440px',
+    },
     extend: {
       colors: {
         primary: "#00E5FF",

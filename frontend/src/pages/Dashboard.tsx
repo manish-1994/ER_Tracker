@@ -378,7 +378,7 @@ const Dashboard = () => {
         /* Render Fallback Dashboard (Operational Center) */
         <>
           {/* Overview Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <CyberStatCard title="Total Workbooks" value={isLoadingFallback ? "..." : stats.workbooks} variant="primary" />
             <CyberStatCard title="Active Worksheets" value={isLoadingFallback ? "..." : stats.worksheets} variant="success" />
             <CyberStatCard title="Registered Operators" value={isLoadingFallback ? "..." : stats.users} variant="secondary" />

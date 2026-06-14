@@ -1515,9 +1515,9 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
       )}
 
       {/* Control Actions Header Deck */}
-      <CyberCard className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex flex-col sm:flex-row items-center space-x-3 font-mono text-xs text-primary/80 gap-3 w-full sm:w-auto">
-          <div className="flex items-center space-x-3">
+      <CyberCard className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center font-mono text-xs text-primary/80 gap-3 w-full lg:w-auto">
+          <div className="flex items-center space-x-3 flex-shrink-0">
             <span>ACCESS LEVEL:</span>
             <CyberBadge variant={role === 'Viewer' ? 'secondary' : 'primary'}>
               {role.toUpperCase()}
@@ -1535,52 +1535,52 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
             />
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <CyberButton onClick={() => setShowFilters(prev => !prev)} variant="secondary">
+        <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-start lg:justify-end">
+          <CyberButton onClick={() => setShowFilters(prev => !prev)} variant="secondary" className="w-full sm:w-auto">
             {showFilters ? "Hide Filters" : "Show Filters"}
           </CyberButton>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
             {canEdit && (
-              <CyberButton onClick={openRenameWsModal} variant="secondary" size="sm">
+              <CyberButton onClick={openRenameWsModal} variant="secondary" size="sm" className="flex-1 sm:flex-none">
                 Rename
               </CyberButton>
             )}
             {canAdd && (
-              <CyberButton onClick={openAddModal} variant="primary">
+              <CyberButton onClick={openAddModal} variant="primary" className="flex-1 sm:flex-none">
                 + Add Row Entry
               </CyberButton>
             )}
             {canManageColumns && (
-              <CyberButton onClick={openAddColModal} variant="primary">
+              <CyberButton onClick={openAddColModal} variant="primary" className="flex-1 sm:flex-none">
                 + Add Column
               </CyberButton>
             )}
             {canManageColumns && (
-              <CyberButton onClick={openManageColsModal} variant="secondary">
+              <CyberButton onClick={openManageColsModal} variant="secondary" className="flex-1 sm:flex-none">
                 Manage Columns
               </CyberButton>
             )}
-            <CyberButton onClick={openAuditModal} variant="secondary">
+            <CyberButton onClick={openAuditModal} variant="secondary" className="w-full sm:w-auto">
               Audit Trail Logs
             </CyberButton>
-            <div className="flex gap-1 border-l border-cyan-500/20 pl-2 no-print">
+            <div className="flex gap-1 border-t sm:border-t-0 sm:border-l border-cyan-500/20 pt-2 sm:pt-0 sm:pl-2 w-full sm:w-auto justify-center sm:justify-start no-print">
               <button
                 onClick={handleExportExcel}
-                className="px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 hover:border-cyan-400 text-cyan-400 rounded transition-all"
+                className="px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 hover:border-cyan-400 text-cyan-400 rounded transition-all flex-1 sm:flex-none text-center"
                 title="Export to Excel spreadsheet"
               >
                 XLSX
               </button>
               <button
                 onClick={handleExportCSV}
-                className="px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 hover:border-cyan-400 text-cyan-400 rounded transition-all"
+                className="px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 hover:border-cyan-400 text-cyan-400 rounded transition-all flex-1 sm:flex-none text-center"
                 title="Export to CSV values"
               >
                 CSV
               </button>
               <button
                 onClick={handleExportPDF}
-                className="px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 hover:border-cyan-400 text-cyan-400 rounded transition-all"
+                className="px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 hover:border-cyan-400 text-cyan-400 rounded transition-all flex-1 sm:flex-none text-center"
                 title="Export print PDF"
               >
                 PDF
@@ -2572,7 +2572,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
             initial={{ y: 50, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 50, opacity: 0 }}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center justify-between gap-6 px-6 py-4 bg-[#0a0f1d]/95 backdrop-blur-md border border-[#00E5FF]/40 shadow-[0_0_20px_rgba(0,229,255,0.25)] rounded-xl font-mono text-xs w-[400px]"
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center justify-between gap-6 px-6 py-4 bg-[#0a0f1d]/95 backdrop-blur-md border border-[#00E5FF]/40 shadow-[0_0_20px_rgba(0,229,255,0.25)] rounded-xl font-mono text-xs w-[calc(100%-2rem)] sm:w-[400px]"
           >
             <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-primary" />
             <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-primary" />

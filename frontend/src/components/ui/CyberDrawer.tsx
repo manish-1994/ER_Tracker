@@ -9,7 +9,12 @@ interface CyberDrawerProps {
   width?: string;
 }
 
-export const CyberDrawer: FC<CyberDrawerProps> = ({ isOpen, onClose, title, children, width = "w-[600px]" }) => {
+export const CyberDrawer: FC<CyberDrawerProps> = ({ isOpen, onClose, title, children, width = "w-full md:w-[600px]" }) => {
+  // Ensure the width class is responsive: w-full on mobile, and specific width on md+ screens
+  const responsiveWidth = width.includes("w-")
+    ? (width.includes("md:") || width.includes("sm:") ? width : `w-full md:${width}`)
+    : "w-full md:w-[600px]";
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -25,7 +30,7 @@ export const CyberDrawer: FC<CyberDrawerProps> = ({ isOpen, onClose, title, chil
           
           {/* Drawer Panel */}
           <motion.div
-            className={`fixed top-0 right-0 h-full ${width} bg-[#0F172A] border-l border-primary/40 z-50 shadow-[-10px_0_30px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col font-mono`}
+            className={`fixed top-0 right-0 h-full ${responsiveWidth} bg-[#0F172A] border-l border-primary/40 z-50 shadow-[-10px_0_30px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col font-mono`}
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}

@@ -77,7 +77,7 @@ export const Reports: React.FC = () => {
         subtitle="Ingested data logs, integrity diagnostic logs, and workbook tracking reports"
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         <CyberStatCard title="Total Audited Ingestions" value={workbooks.length} variant="primary" />
         <CyberStatCard title="Active Operational Logs" value={filteredWorkbooks.length} variant="secondary" />
         <CyberStatCard

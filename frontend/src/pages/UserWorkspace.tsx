@@ -124,7 +124,7 @@ const UserWorkspace: React.FC = () => {
       <PageHeader title="User Workspace" subtitle="Your assigned resources and recent activity" />
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <CyberStatCard
           title="Assigned Workbooks"
           value={assignedWorkbooks.length}
