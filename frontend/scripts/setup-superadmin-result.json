@@ -1,0 +1,22 @@
+{
+  "username": "superadmin",
+  "userCreated": false,
+  "userAlreadyExisted": true,
+  "userId": 9,
+  "roleId": 1,
+  "roleName": "SuperAdmin",
+  "roleAssignmentCreated": false,
+  "roleAssignmentAlreadyExisted": true,
+  "roleAssignmentError": null,
+  "verification": {
+    "id": 9,
+    "username": "superadmin",
+    "role": "SuperAdmin",
+    "roles": [
+      "SuperAdmin"
+    ],
+    "expected": "superadmin -> SuperAdmin",
+    "passed": true
+  },
+  "errors": []
+}

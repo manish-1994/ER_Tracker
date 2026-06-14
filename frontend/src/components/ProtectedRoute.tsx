@@ -1,25 +1,54 @@
 import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { checkPermission } from "../services/roleService";
 
-/** Wrapper that checks for a JWT and optionally a required role */
-const ProtectedRoute = ({ children, requiredRole }: any) => {
+const ProtectedRoute = ({ children, requiredSystemRole, requiredWorkbookRole, allowedRoles, requiredPermission }: any) => {
+  const { token, loading, appUser } = useAuth();
   const location = useLocation();
-  const token = localStorage.getItem("jwt");
+  const normalizedRoles = appUser?.roles?.map((r) => String(r).trim()) || [];
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
   if (!token) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
-  if (requiredRole) {
-    // Decode JWT payload (base64) without verification – sufficient for UI gating
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      const roles: string[] = payload.roles || [];
-      if (!roles.includes(requiredRole)) {
-        return <Navigate to="/" replace />;
-      }
-    } catch (e) {
-      return <Navigate to="/login" replace />;
+
+  if (requiredPermission) {
+    const hasPerm = checkPermission(normalizedRoles, requiredPermission.module, requiredPermission.action);
+    if (!hasPerm) {
+      return <Navigate to="/unauthorized" state={{ from: location }} replace />;
+    }
+    return <>{children}</>;
+  }
+
+  if (allowedRoles && allowedRoles.length > 0) {
+    const hasAllowedRole = normalizedRoles.some((role) => allowedRoles.includes(role));
+    if (!hasAllowedRole) {
+      return <Navigate to="/unauthorized" state={{ from: location }} replace />;
+    }
+    return <>{children}</>;
+  }
+
+  if (requiredSystemRole) {
+    const isAdmin =
+      normalizedRoles.includes("SuperAdmin") || normalizedRoles.includes("Admin");
+    if (!isAdmin) {
+      return <Navigate to="/unauthorized" state={{ from: location }} replace />;
+    }
+    return <>{children}</>;
+  }
+
+  if (requiredWorkbookRole) {
+    const normalizedWB =
+      typeof requiredWorkbookRole === "string" ? requiredWorkbookRole.trim() : "";
+    const hasWB = normalizedRoles.includes(normalizedWB);
+    if (!hasWB) {
+      return <Navigate to="/unauthorized" state={{ from: location }} replace />;
     }
   }
+
   return <>{children}</>;
 };
 

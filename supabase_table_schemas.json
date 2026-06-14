@@ -1,0 +1,202 @@
+{
+  "records_01d6a3666c9f44dc90935215c53116d1": [
+    "december",
+    "april",
+    "october",
+    "september",
+    "january",
+    "name",
+    "may",
+    "june",
+    "march",
+    "august",
+    "november",
+    "february",
+    "july"
+  ],
+  "records_036fe570b67740bb8890ad60ffcfa25e": [
+    "unnamed_3",
+    "unnamed_1",
+    "terms_q2_2026",
+    "unnamed_2",
+    "unnamed_4",
+    "unnamed_6",
+    "unnamed_5"
+  ],
+  "records_2ea3533fbc444fd3a5b979639e38dbb7": [
+    "division",
+    "action_date",
+    "employee_name",
+    "entered_by",
+    "billing_contact_company_name",
+    "note"
+  ],
+  "records_4059d22372a6457ba4b8129667a5ac54": [
+    "a",
+    "b"
+  ],
+  "records_408e6806fae64721b6932558ec6d4664": [
+    "q2_2026",
+    "unnamed_5",
+    "unnamed_2",
+    "unnamed_1",
+    "unnamed_3",
+    "unnamed_4"
+  ],
+  "records_6070970ff3bf42d0b68ee4cd28fb9060": [
+    "term_reason",
+    "exit_interview",
+    "client",
+    "termination"
+  ],
+  "records_66b58351b75a4f0497478590cc12f7da": [
+    "unnamed_5",
+    "unnamed_8",
+    "unnamed_6",
+    "delivery_m",
+    "ebay_inc",
+    "akash_k",
+    "client_names",
+    "unnamed_14",
+    "unnamed_3",
+    "unnamed_7",
+    "unnamed_17",
+    "unnamed_4",
+    "unnamed_2",
+    "client",
+    "asmita_a",
+    "am",
+    "samuel_s",
+    "sr_dm",
+    "pd",
+    "dd"
+  ],
+  "records_8194a89493c74d3ba83643fe34b5fea1": [
+    "am",
+    "latest_update",
+    "date_opened",
+    "open",
+    "redflag_category",
+    "er_name",
+    "am_action_taken",
+    "client",
+    "final_resolution",
+    "consultant_name",
+    "issue_summary",
+    "er_action_taken"
+  ],
+  "records_82788dc9238b480b8b4040caef236409": [
+    "column_a",
+    "column_b"
+  ],
+  "records_86cff3dade0e4ded9fbc557537b39019": [
+    "unnamed_4",
+    "leave_type",
+    "client",
+    "leave_date",
+    "candidate"
+  ],
+  "records_b84c776822e74b60b561e3248cba8633": [
+    "column_a",
+    "column_b"
+  ],
+  "records_c1b4d64899f24d128df55c8127d34c03": [
+    "unnamed_5",
+    "unnamed_1",
+    "unnamed_2",
+    "unnamed_4",
+    "unnamed_3",
+    "unnamed_0"
+  ],
+  "records_cff7af7ed0394995a732cccabc486fbd": [
+    "unnamed_11",
+    "unnamed_6",
+    "unnamed_17",
+    "unnamed_15",
+    "unnamed_9",
+    "unnamed_8",
+    "unnamed_12",
+    "ashita",
+    "apurb",
+    "saira",
+    "joral",
+    "unnamed_0",
+    "fatima_hemali",
+    "unnamed_3",
+    "unnamed_14",
+    "karan",
+    "unnamed_5",
+    "unnamed_2"
+  ],
+  "records_e06051ec060f4c0d968275577903d11f": [
+    "employee_name",
+    "action_date",
+    "billing_contact_company_name",
+    "entered_by",
+    "unnamed_5",
+    "division"
+  ],
+  "records_e34e3cc1f2c048498d4282392164466f": [
+    "am_notes_added_yes_no",
+    "candidate_name",
+    "notes",
+    "billing_company"
+  ],
+  "records_e61aaaa26fd043a3a2d764df2aa14024": [
+    "employee_name",
+    "billing_contact_company_name",
+    "unnamed_6",
+    "er_done",
+    "division",
+    "action_date",
+    "unnamed_7",
+    "entered_by"
+  ],
+  "records_f054686c1cc947eb820ad9390ab36513": [
+    "unnamed_6",
+    "unnamed_15",
+    "unnamed_8",
+    "unnamed_9",
+    "unnamed_14",
+    "unnamed_13",
+    "unnamed_12",
+    "unnamed_20",
+    "unnamed_11",
+    "unnamed_10",
+    "unnamed_3",
+    "unnamed_18",
+    "unnamed_5",
+    "unnamed_33",
+    "unnamed_2",
+    "unnamed_30",
+    "unnamed_32",
+    "unnamed_23",
+    "unnamed_31",
+    "q4",
+    "unnamed_24",
+    "unnamed_21",
+    "unnamed_25",
+    "unnamed_7",
+    "unnamed_26",
+    "do_not_leave_any_cell_blank",
+    "unnamed_4",
+    "unnamed_35",
+    "unnamed_17",
+    "unnamed_36",
+    "unnamed_28",
+    "unnamed_16",
+    "unnamed_19",
+    "unnamed_29",
+    "unnamed_34",
+    "unnamed_27",
+    "unnamed_22"
+  ],
+  "records_fd2763f2ba5a404f82b6c86ea86c3cff": [
+    "total_calls_pending",
+    "er_name",
+    "total_calls_to_be_done_last_week",
+    "reasons",
+    "first_connect",
+    "cc"
+  ]
+}

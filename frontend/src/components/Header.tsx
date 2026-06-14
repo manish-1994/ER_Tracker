@@ -1,29 +1,17 @@
 import React from "react";
+import { useAuth } from "../context/AuthContext";
+import { CyberAvatar } from "./ui/CyberAvatar";
 
-/**
- * Header component according to the design spec.
- * Left side – page title (will be supplied via children or context later).
- * Right side – search box, user avatar placeholder, role badge.
- * Uses the defined color system and glass effect.
- */
 const Header: React.FC = () => {
+  const { appUser } = useAuth();
+  const username = appUser?.username || "Unknown";
+
   return (
-    <header className="flex justify-between items-center h-16 px-6 bg-[#0B1220] bg-opacity-90 backdrop-blur-md">
-      {/* Left – page title */}
-      <h1 className="text-36 font-bold text-[#F8FAFC]">Dashboard</h1>
-      {/* Right – controls */}
-      <div className="flex items-center space-x-4">
-        {/* Search box */}
-        <input
-          type="text"
-          placeholder="Search..."
-          className="px-3 py-1 rounded bg-white bg-opacity-10 backdrop-blur-sm text-[#F8FAFC] placeholder-[#94A3B8] focus:outline-none"
-        />
-        {/* Avatar placeholder */}
-        <div className="w-8 h-8 rounded-full bg-[#22D3EE]" />
-        {/* Role badge */}
-        <span className="px-2 py-0.5 bg-[#06B6D4] text-[#F8FAFC] text-sm rounded">
-          SuperAdmin
+    <header className="h-16 px-8 flex items-center justify-end bg-[#050b14]/75 backdrop-blur-md border-b border-cyan-500/20 sticky top-0 z-30 font-mono">
+      <div className="flex items-center gap-3 bg-[#0a0f1d]/60 border border-cyan-500/10 px-4 py-1.5 rounded-lg shadow-[inset_0_0_10px_rgba(0,0,0,0.5)]">
+        <CyberAvatar username={username} size="sm" isOnline={true} />
+        <span className="text-primary font-bold uppercase tracking-widest text-xs neon-text-primary">
+          {username}
         </span>
       </div>
     </header>

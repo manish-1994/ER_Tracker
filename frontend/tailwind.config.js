@@ -7,15 +7,15 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primaryBg: "#050816",
-        secondaryBg: "#0A1020",
-        cardBg: "rgba(15,23,42,0.8)",
-        primaryAccent: "#00F5FF",
-        secondaryAccent: "#FF00EA",
+        primary: "#00E5FF",
+        secondary: "#8B5CF6",
         success: "#00FF9D",
-        warning: "#FFC857",
+        warning: "#FFB800",
         danger: "#FF4D6D",
-        text: "#FFFFFF",
+        cyberBg: "#020617",
+        cyberCard: "rgba(8,15,30,0.85)",
+        cyberBorder: "rgba(0,229,255,0.20)",
+        text: "#E2E8F0",
         muted: "#94A3B8",
       },
       backdropBlur: {

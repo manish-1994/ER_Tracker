@@ -1,0 +1,24 @@
+# Archived Reports
+
+The following markdown reports have been moved to the archive as they are resolved and no longer needed for active development:
+
++ LOGIN_RUNTIME_FAILURE_REPORT.md
++ AUTH_RECOVERY_REPORT.md
++ AUTHORIZATION_ARCHITECTURE_PROPOSAL.md
++ AUTHORIZATION_ID_MAPPING_FIX_REPORT.md
++ AUTHORIZATION_SCHEMA_REFACTOR_REPORT.md
++ ROLE_API_404_REPORT.md
++ ROLE_AUTHORIZATION_FAILURE_AUDIT.md
++ ROLE_ENFORCEMENT_IMPLEMENTATION_REPORT.md
++ ROLE_MANAGEMENT_CYBERPUNK_REPORT.md
++ ROLE_SYSTEM_AUDIT.md
++ ROLE_USER_MIGRATION_REPORT.md
++ ROLEMANAGEMENT_JSX_FIX_REPORT.md
++ USER_ROLE_IMPLEMENTATION_AUDIT.md
++ USER_ROLE_IMPLEMENTATION_VERIFICATION_REPORT.md
++ USER_ROLE_MANAGEMENT_IMPLEMENTATION_REPORT.md (archived copy; the active version remains at the project root)
++ ... (additional resolved troubleshooting reports)
+
+---
+
+*Archive generated on 2026-06-11.*

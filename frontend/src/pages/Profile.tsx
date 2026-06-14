@@ -1,138 +1,255 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
-import { motion } from "framer-motion";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import api from "../services/api";
+import { useToast } from "../context/ToastContext";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "../services/supabaseClient";
+import { updateUser } from "../services/userService";
+import { CyberCard } from "../components/ui/CyberCard";
+import { CyberButton } from "../components/ui/CyberButton";
+import { CyberInput } from "../components/ui/CyberInput";
+import { CyberBadge } from "../components/ui/CyberBadge";
+import { CyberAvatar } from "../components/ui/CyberAvatar";
 
-/** Detailed cyber‑punk profile page */
-const Profile = () => {
+const Profile: React.FC = () => {
+  const { appUser } = useAuth();
+  const toast = useToast();
   const queryClient = useQueryClient();
-  // Retrieve token once at component level (Hooks must be called at top level)
-  const { token } = useAuth();
-
-  // Fetch profile data
-  // Debug: log when fetchProfile is invoked
-  const fetchProfile = async () => {
-    console.log("Profile query started");
-    console.log("Token from localStorage:", localStorage.getItem("jwt"));
-    try {
-      const headers: any = {};
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
-        // Note: omit leading slash so axios respects the baseURL (/api)
-        // Use no‑trailing‑slash path to match the backend's new route definition
-        const { data } = await api.get("profile", { headers });
-      console.log("Profile fetch successful", data);
-      return data;
-    } catch (err) {
-      console.error("Profile fetch failed:", err);
-      throw err;
-    }
-  };
-  const { data, isLoading, error } = useQuery({ queryKey: ["profile"], queryFn: fetchProfile });
-
-  // Mutations for updating profile and password
-  const updateProfile = useMutation({
-        mutationFn: async (updates: any) => {
-          await api.put("profile", updates);
-    },
-    // Invalidate the "profile" query after successful update using the proper filter object
-    // Invalidate the "profile" query after a successful update using the correct API signature
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["profile"] }),
-  });
-
-  const changePassword = useMutation({
-        mutationFn: async (payload: any) => {
-          await api.put("profile/password", payload);
-    },
-    onSuccess: () => alert("Password updated"),
-  });
 
   // Local form state
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [currentPw, setCurrentPw] = useState("");
-  const [newPw, setNewPw] = useState("");
+  const [usernameInput, setUsernameInput] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passError, setPassError] = useState("");
+  const [passSuccess, setPassSuccess] = useState("");
+  const [profileSuccess, setProfileSuccess] = useState("");
 
-  // Initialise form when data loads
-  React.useEffect(() => {
-    if (data) {
-      setFullName(data.full_name || "");
-      setEmail(data.email || "");
+  // Query database for user metadata (is_active)
+  const { data: dbUser, isLoading: dbUserLoading } = useQuery({
+    queryKey: ["dbProfile", appUser?.id],
+    queryFn: async () => {
+      if (!appUser?.id) return null;
+      const { data, error } = await supabase
+        .from("users")
+        .select("is_active")
+        .eq("id", appUser.id)
+        .single();
+      if (error) throw error;
+      return {
+        ...data,
+        created_at: null
+      };
+    },
+    enabled: !!appUser?.id,
+  });
+
+  useEffect(() => {
+    if (appUser?.username) {
+      setUsernameInput(appUser.username);
     }
-  }, [data]);
+  }, [appUser]);
 
-  if (isLoading) return <div className="p-6 text-gray-200">Loading profile...</div>;
-  if (error) return <div className="p-6 text-red-500">Failed to load profile</div>;
+  // Update profile mutation (custom users table)
+  const profileMutation = useMutation({
+    mutationFn: async (updatedName: string) => {
+      if (!appUser?.id) return;
+      await updateUser(appUser.id.toString(), { username: updatedName });
+    },
+    onSuccess: () => {
+      toast.success("User credentials synchronized successfully.");
+      queryClient.invalidateQueries({ queryKey: ["dbProfile", appUser?.id] });
+      // Update local storage user session info
+      const stored = localStorage.getItem("appUser");
+      if (stored && appUser) {
+        const parsed = JSON.parse(stored);
+        parsed.username = usernameInput;
+        localStorage.setItem("appUser", JSON.stringify(parsed));
+      }
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "Failed to update profile name");
+    }
+  });
+
+  // Password mutation (custom users table)
+  const passwordMutation = useMutation({
+    mutationFn: async (passwordVal: string) => {
+      if (!appUser?.id) return;
+      await updateUser(appUser.id.toString(), { password: passwordVal });
+    },
+    onSuccess: () => {
+      toast.success("Security passkey updated successfully.");
+      setNewPassword("");
+      setConfirmPassword("");
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "Failed to update passkey.");
+    }
+  });
+
+  const handleProfileSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setProfileSuccess("");
+    if (!usernameInput) return;
+    profileMutation.mutate(usernameInput);
+  };
+
+  const handlePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPassError("");
+    setPassSuccess("");
+    if (!newPassword) {
+      setPassError("Password field cannot be empty.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPassError("Password verification mismatch.");
+      return;
+    }
+    passwordMutation.mutate(newPassword);
+  };
+
+  if (!appUser) {
+    return (
+      <div className="p-10 text-center font-mono text-muted animate-pulse">
+        Access Denied: Synchronize session credentials...
+      </div>
+    );
+  }
+
+  const roleVariant: Record<string, "primary" | "secondary" | "success" | "warning" | "danger"> = {
+    superadmin: "danger",
+    admin: "secondary",
+    manager: "primary",
+    analyst: "warning",
+    viewer: "success",
+  };
 
   return (
-    <section className="min-h-screen bg-gradient-to-br from-[#070B14] to-[#0a0f1a] p-6">
-      <motion.div
-        className="bg-black/70 backdrop-blur-lg p-8 rounded-lg border border-cyan-500/30 w-full max-w-4xl mx-auto"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <h2 className="text-3xl font-bold text-center text-cyan-300 mb-6">User Profile</h2>
-        {/* User Information */}
-        <div className="grid md:grid-cols-2 gap-6 mb-8">
-          <div>
-            <h3 className="text-xl font-medium text-cyan-200 mb-2">Account Information</h3>
-            <p className="text-gray-300"><span className="font-semibold">Username:</span> {data?.username ?? ""}</p>
-            <p className="text-gray-300"><span className="font-semibold">Full Name:</span> {fullName}</p>
-            <p className="text-gray-300"><span className="font-semibold">Email:</span> {email}</p>
+    <div className="space-y-6 max-w-4xl mx-auto">
+      {/* Title Header */}
+      <div>
+        <h1 className="text-3xl font-mono font-black tracking-wider text-primary uppercase neon-text-primary">
+          Operator Profile Center
+        </h1>
+        <p className="text-muted font-mono text-sm">
+          Operator credentials & system security clearances panel
+        </p>
+      </div>
+
+      {/* Profile ID Card */}
+      <CyberCard variant="primary" className="flex flex-col md:flex-row items-center gap-6 p-6 relative overflow-hidden">
+        <div className="flex-shrink-0">
+          <CyberAvatar username={appUser.username} size="lg" isOnline={dbUser?.is_active ?? true} />
+        </div>
+        
+        <div className="flex-1 text-center md:text-left space-y-2">
+          <h2 className="text-3xl font-mono font-black text-primary uppercase tracking-wider neon-text-primary">
+            {appUser.username}
+          </h2>
+          
+          <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
+            {(appUser.roles || []).map((role) => (
+              <CyberBadge key={role} variant={roleVariant[role.toLowerCase()] || "muted"}>
+                {role}
+              </CyberBadge>
+            ))}
+            {(!appUser.roles || appUser.roles.length === 0) && (
+              <CyberBadge variant="muted">NO CLEARANCE</CyberBadge>
+            )}
           </div>
-          <div>
-            <h3 className="text-xl font-medium text-cyan-200 mb-2">Role & Permissions</h3>
-            {/* Backend returns an array of role objects */}
-            <p className="text-gray-300"><span className="font-semibold">Roles:</span> {data?.roles?.map((r: any) => r.name).join(', ')}</p>
-            <ul className="list-disc list-inside text-gray-300 mt-2">
-              {data?.permissions?.map((perm: any) => (
-                <li key={perm.id}>{perm.name}</li>
-              ))}
-            </ul>
+
+          <div className="text-xs font-mono text-muted space-y-1 pt-2">
+            <div>OPERATOR NODE ID: <span className="text-text font-bold">0{appUser.id}</span></div>
+            {dbUser?.created_at && (
+              <div>COMMISSIONED DATE: <span className="text-text font-bold">
+                {new Date(dbUser.created_at).toLocaleString()}
+              </span></div>
+            )}
           </div>
         </div>
-         {/* Account Settings */}
-         <div className="border-t border-cyan-500/30 pt-6">
-           <h3 className="text-xl font-medium text-cyan-200 mb-4">Account Settings</h3>
-           <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); updateProfile.mutate({ full_name: fullName, email }); }}>
-             <div>
-               <label className="block text-sm font-medium text-gray-300 mb-1" htmlFor="fullName">Full Name</label>
-               <input id="fullName" type="text" className="w-full px-3 py-2 bg-gray-800 text-gray-100 rounded focus:outline-none focus:ring-2 focus:ring-cyan-500" value={fullName} onChange={(e) => setFullName(e.target.value)} />
-             </div>
-             <div>
-               <label className="block text-sm font-medium text-gray-300 mb-1" htmlFor="email">Email</label>
-               <input id="email" type="email" className="w-full px-3 py-2 bg-gray-800 text-gray-100 rounded focus:outline-none focus:ring-2 focus:ring-cyan-500" value={email} onChange={(e) => setEmail(e.target.value)} />
-             </div>
-             <motion.button type="submit" className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-semibold rounded shadow-lg" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>Update Profile</motion.button>
-           </form>
-         </div>
-        {/* Change Password */}
-        <div className="border-t border-cyan-500/30 pt-6 mt-6">
-          <h3 className="text-xl font-medium text-cyan-200 mb-4">Change Password</h3>
-          <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); changePassword.mutate({ current_password: currentPw, new_password: newPw }); }}>
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1" htmlFor="currentPw">Current Password</label>
-              <input id="currentPw" type="password" className="w-full px-3 py-2 bg-gray-800 text-gray-100 rounded focus:outline-none focus:ring-2 focus:ring-cyan-500" value={currentPw} onChange={(e) => setCurrentPw(e.target.value)} />
+      </CyberCard>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Account Info Change */}
+        <CyberCard className="space-y-4">
+          <h3 className="text-md font-mono font-bold tracking-widest text-primary uppercase border-b border-cyan-500/25 pb-2">
+            Operator Settings
+          </h3>
+          
+          <form onSubmit={handleProfileSubmit} className="space-y-4">
+            {profileSuccess && (
+              <div className="p-3 bg-success/10 border border-success/40 text-success text-xs font-mono rounded">
+                {profileSuccess}
+              </div>
+            )}
+
+            <div className="space-y-1 font-mono">
+              <label className="text-xs text-muted uppercase tracking-wider">Username Handle</label>
+              <CyberInput 
+                type="text" 
+                value={usernameInput} 
+                onChange={(e) => setUsernameInput(e.target.value)} 
+                required
+              />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1" htmlFor="newPw">New Password</label>
-              <input id="newPw" type="password" className="w-full px-3 py-2 bg-gray-800 text-gray-100 rounded focus:outline-none focus:ring-2 focus:ring-cyan-500" value={newPw} onChange={(e) => setNewPw(e.target.value)} />
+
+            <div className="pt-2">
+              <CyberButton type="submit" variant="primary" disabled={profileMutation.isPending}>
+                {profileMutation.isPending ? "Syncing..." : "Sync Credentials"}
+              </CyberButton>
             </div>
-            <motion.button type="submit" className="w-full py-2 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded shadow-lg" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>Change Password</motion.button>
           </form>
-        </div>
-        {/* Last Login */}
-        {/* Display last login if available */}
-        {data?.last_login && (
-          <div className="text-center text-gray-400 mt-6">
-            Last login: {new Date(data.last_login).toLocaleString()}
-          </div>
-        )}
-      </motion.div>
-    </section>
+        </CyberCard>
+
+        {/* Password Update console */}
+        <CyberCard variant="secondary" className="space-y-4">
+          <h3 className="text-md font-mono font-bold tracking-widest text-secondary uppercase border-b border-purple-500/25 pb-2">
+            Security Passkey Change
+          </h3>
+
+          <form onSubmit={handlePasswordSubmit} className="space-y-4">
+            {passError && (
+              <div className="p-3 bg-danger/10 border border-danger/40 text-danger text-xs font-mono rounded">
+                {passError}
+              </div>
+            )}
+            {passSuccess && (
+              <div className="p-3 bg-success/10 border border-success/40 text-success text-xs font-mono rounded">
+                {passSuccess}
+              </div>
+            )}
+
+            <div className="space-y-1 font-mono">
+              <label className="text-xs text-muted uppercase tracking-wider">New Password</label>
+              <CyberInput 
+                type="password" 
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+              />
+            </div>
+
+            <div className="space-y-1 font-mono">
+              <label className="text-xs text-muted uppercase tracking-wider">Verify Password</label>
+              <CyberInput 
+                type="password" 
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+              />
+            </div>
+
+            <div className="pt-2">
+              <CyberButton type="submit" variant="secondary" disabled={passwordMutation.isPending}>
+                {passwordMutation.isPending ? "Re-keying..." : "Update Passkey"}
+              </CyberButton>
+            </div>
+          </form>
+        </CyberCard>
+      </div>
+    </div>
   );
 };
 

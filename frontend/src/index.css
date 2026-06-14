@@ -6,12 +6,88 @@
 
 /* Custom styles for the cyber‑punk theme */
 body {
-  @apply bg-gray-900 text-gray-100 font-sans antialiased;
+  @apply bg-cyberBg text-text font-sans antialiased;
+  background-image: 
+    linear-gradient(rgba(0, 229, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 229, 255, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  background-position: center;
 }
 
-/* Example utility class for neon text */
-.neon {
-  text-shadow: 0 0 5px rgba(0, 255, 255, 0.8),
-               0 0 10px rgba(0, 255, 255, 0.6),
-               0 0 20px rgba(0, 255, 255, 0.4);
+/* Cyberpunk utility classes */
+.neon-glow-primary {
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.3), inset 0 0 10px rgba(0, 229, 255, 0.1);
+}
+
+.neon-glow-primary-hover:hover {
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.6), inset 0 0 15px rgba(0, 229, 255, 0.2);
+}
+
+.neon-glow-secondary {
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.3), inset 0 0 10px rgba(139, 92, 246, 0.1);
+}
+
+.neon-glow-secondary-hover:hover {
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.6), inset 0 0 15px rgba(139, 92, 246, 0.2);
+}
+
+.neon-text-primary {
+  text-shadow: 0 0 8px rgba(0, 229, 255, 0.6);
+}
+
+.neon-text-secondary {
+  text-shadow: 0 0 8px rgba(139, 92, 246, 0.6);
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #020617;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 229, 255, 0.2);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 229, 255, 0.5);
+  box-shadow: 0 0 8px rgba(0, 229, 255, 0.5);
+}
+
+/* Printable PDF Style Calibration */
+@media print {
+  body {
+    background-color: #ffffff !important;
+    background-image: none !important;
+    color: #000000 !important;
+  }
+  aside, header, nav, .no-print, button, .btn {
+    display: none !important;
+  }
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+  .cyber-card, .card, select, input, textarea {
+    border: 1px solid #cccccc !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: #000000 !important;
+    text-shadow: none !important;
+  }
+  .neon-text-primary, .neon-text-secondary {
+    text-shadow: none !important;
+    color: #000000 !important;
+  }
+  table, tr, td, th {
+    border-color: #dddddd !important;
+    color: #000000 !important;
+  }
 }
