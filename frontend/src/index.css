@@ -16,19 +16,19 @@ body {
 
 /* Cyberpunk utility classes */
 .neon-glow-primary {
-  box-shadow: 0 0 10px rgba(0, 229, 255, 0.3), inset 0 0 10px rgba(0, 229, 255, 0.1);
+  box-shadow: 0 0 10px var(--color-primary-shadow, rgba(0, 229, 255, 0.3)), inset 0 0 10px var(--color-primary-inset, rgba(0, 229, 255, 0.1));
 }
 
 .neon-glow-primary-hover:hover {
-  box-shadow: 0 0 20px rgba(0, 229, 255, 0.6), inset 0 0 15px rgba(0, 229, 255, 0.2);
+  box-shadow: 0 0 20px var(--color-primary-shadow-hover, rgba(0, 229, 255, 0.6)), inset 0 0 15px var(--color-primary-inset-hover, rgba(0, 229, 255, 0.2));
 }
 
 .neon-glow-secondary {
-  box-shadow: 0 0 10px rgba(139, 92, 246, 0.3), inset 0 0 10px rgba(139, 92, 246, 0.1);
+  box-shadow: 0 0 10px var(--color-secondary-shadow, rgba(139, 92, 246, 0.3)), inset 0 0 10px var(--color-secondary-inset, rgba(139, 92, 246, 0.1));
 }
 
 .neon-glow-secondary-hover:hover {
-  box-shadow: 0 0 20px rgba(139, 92, 246, 0.6), inset 0 0 15px rgba(139, 92, 246, 0.2);
+  box-shadow: 0 0 20px var(--color-secondary-shadow-hover, rgba(139, 92, 246, 0.6)), inset 0 0 15px var(--color-secondary-inset-hover, rgba(139, 92, 246, 0.2));
 }
 
 .neon-text-primary {

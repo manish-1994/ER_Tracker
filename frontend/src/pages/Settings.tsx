@@ -2,51 +2,54 @@ import React, { useState, useEffect } from "react";
 import { CyberCard } from "../components/ui/CyberCard";
 import { CyberButton } from "../components/ui/CyberButton";
 import { CyberInput } from "../components/ui/CyberInput";
-import { CyberBadge } from "../components/ui/CyberBadge";
 import { PageHeader } from "../components/ui/PageHeader";
+import { CyberModal } from "../components/ui/CyberModal";
 import { useToast } from "../context/ToastContext";
+import { useSettings } from "../context/SettingsContext";
+import { useAuth } from "../context/AuthContext";
 
 export const Settings: React.FC = () => {
   const toast = useToast();
+  const { settings, updateSettings, playSound } = useSettings();
+  const { appUser } = useAuth();
   
-  // Custom HUD Configuration States
-  const [hudAccent, setHudAccent] = useState<string>("cyan");
-  const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
-  const [refreshInterval, setRefreshInterval] = useState<number>(30);
-  const [telemetryMode, setTelemetryMode] = useState<string>("live");
-  const [devConsoleMode, setDevConsoleMode] = useState<boolean>(false);
+  const [hudAccent, setHudAccent] = useState(settings.hudAccent);
+  const [soundEnabled, setSoundEnabled] = useState(settings.soundEnabled);
+  const [refreshInterval, setRefreshInterval] = useState(settings.refreshInterval);
+  const [devConsoleMode, setDevConsoleMode] = useState(settings.devConsoleMode);
+  const [showPurgeModal, setShowPurgeModal] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
 
-  // Load settings on init
   useEffect(() => {
-    const savedAccent = localStorage.getItem("setting_hud_accent") || "cyan";
-    const savedSound = localStorage.getItem("setting_sound_effects") !== "false";
-    const savedRefresh = parseInt(localStorage.getItem("setting_refresh_interval") || "30");
-    const savedMode = localStorage.getItem("setting_telemetry_mode") || "live";
-    const savedConsole = localStorage.getItem("setting_dev_console") === "true";
-
-    setHudAccent(savedAccent);
-    setSoundEnabled(savedSound);
-    setRefreshInterval(savedRefresh);
-    setTelemetryMode(savedMode);
-    setDevConsoleMode(savedConsole);
-  }, []);
+    setHudAccent(settings.hudAccent);
+    setSoundEnabled(settings.soundEnabled);
+    setRefreshInterval(settings.refreshInterval);
+    setDevConsoleMode(settings.devConsoleMode);
+  }, [settings]);
 
   const handleSaveSettings = () => {
-    localStorage.setItem("setting_hud_accent", hudAccent);
-    localStorage.setItem("setting_sound_effects", String(soundEnabled));
-    localStorage.setItem("setting_refresh_interval", String(refreshInterval));
-    localStorage.setItem("setting_telemetry_mode", telemetryMode);
-    localStorage.setItem("setting_dev_console", String(devConsoleMode));
-    
+    updateSettings({ hudAccent, soundEnabled, refreshInterval, devConsoleMode });
+    playSound("success");
     toast.success("Cybernetic HUD settings written successfully");
   };
 
-  const handlePurgeDashboardConfigs = () => {
-    if (window.confirm("WARNING: Are you sure you want to purge all custom dashboard widget assignments? This cannot be undone.")) {
-      localStorage.removeItem("dashboard_assignments");
-      toast.success("Dashboard widget telemetry databases purged.");
-    }
+  const handlePurgeConfirm = () => {
+    localStorage.removeItem("dashboard_assignments");
+    toast.success("Dashboard widget telemetry databases purged.");
+    setShowPurgeModal(false);
+    setConfirmText("");
   };
+
+  const handlePurgeDashboardConfigs = () => {
+    const isSuperAdmin = appUser?.roles?.includes("SuperAdmin") ?? false;
+    if (!isSuperAdmin) {
+      toast.error("SuperAdmin access required for purge operations");
+      return;
+    }
+    setShowPurgeModal(true);
+  };
+
+  const isSuperAdmin = appUser?.roles?.includes("SuperAdmin") ?? false;
 
   return (
     <div className="space-y-6">
@@ -69,22 +72,20 @@ export const Settings: React.FC = () => {
                 HUD Neon Theme Accent
               </label>
               <div className="grid grid-cols-3 gap-2">
-                {[
-                  { id: "cyan", name: "Cyan Accents", color: "#00E5FF" },
-                  { id: "purple", name: "Purple Neon", color: "#D500F9" },
-                  { id: "green", name: "Green Protocol", color: "#00FF9D" },
-                ].map((acc) => (
+                {["cyan", "purple", "green"].map((acc) => (
                   <button
-                    key={acc.id}
-                    onClick={() => setHudAccent(acc.id)}
+                    key={acc}
+                    onClick={() => { setHudAccent(acc as any); playSound("click"); }}
                     className={`p-2 border rounded-lg flex items-center justify-center gap-1.5 transition-all ${
-                      hudAccent === acc.id
+                      hudAccent === acc
                         ? "border-primary bg-primary/10 text-primary"
                         : "border-cyan-500/10 bg-black/40 text-slate-400 hover:border-cyan-500/30"
                     }`}
                   >
-                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: acc.color }} />
-                    <span>{acc.name}</span>
+                    <span className={`w-2.5 h-2.5 rounded-full ${
+                      acc === "cyan" ? "bg-cyan-400" : acc === "purple" ? "bg-purple-400" : "bg-green-400"
+                    }`} />
+                    <span className="capitalize">{acc} Accents</span>
                   </button>
                 ))}
               </div>
@@ -99,7 +100,7 @@ export const Settings: React.FC = () => {
               <input
                 type="checkbox"
                 checked={soundEnabled}
-                onChange={(e) => setSoundEnabled(e.target.checked)}
+                onChange={(e) => { setSoundEnabled(e.target.checked); playSound("click"); }}
                 className="w-4 h-4 text-primary bg-black border-cyan-500/30 rounded focus:ring-primary focus:ring-1"
               />
             </div>
@@ -113,7 +114,7 @@ export const Settings: React.FC = () => {
               <input
                 type="checkbox"
                 checked={devConsoleMode}
-                onChange={(e) => setDevConsoleMode(e.target.checked)}
+                onChange={(e) => { setDevConsoleMode(e.target.checked); playSound("click"); }}
                 className="w-4 h-4 text-primary bg-black border-cyan-500/30 rounded focus:ring-primary focus:ring-1"
               />
             </div>
@@ -135,28 +136,13 @@ export const Settings: React.FC = () => {
                 </label>
                 <select
                   value={refreshInterval}
-                  onChange={(e) => setRefreshInterval(Number(e.target.value))}
+                  onChange={(e) => { setRefreshInterval(Number(e.target.value)); playSound("click"); }}
                   className="w-full px-3 py-2 bg-[#050b14] border border-purple-500/20 text-[#E2E8F0] text-xs focus:outline-none focus:border-secondary rounded-lg transition-all"
                 >
                   <option value={10}>10 Seconds (High Load)</option>
                   <option value={30}>30 Seconds (Default)</option>
                   <option value={60}>60 Seconds (Standard)</option>
                   <option value={300}>5 Minutes (Eco Bandwidth)</option>
-                </select>
-              </div>
-
-              {/* Mode Selection */}
-              <div className="space-y-1">
-                <label className="block text-[10px] text-slate-400 uppercase font-bold tracking-wider">
-                  Live PostgREST Telemetry Mode
-                </label>
-                <select
-                  value={telemetryMode}
-                  onChange={(e) => setTelemetryMode(e.target.value)}
-                  className="w-full px-3 py-2 bg-[#050b14] border border-purple-500/20 text-[#E2E8F0] text-xs focus:outline-none focus:border-secondary rounded-lg transition-all"
-                >
-                  <option value="live">Synchronous Live Queries (Supabase)</option>
-                  <option value="cached">Client-Side Storage Buffering</option>
                 </select>
               </div>
             </div>
@@ -172,10 +158,14 @@ export const Settings: React.FC = () => {
               </p>
               <button
                 onClick={handlePurgeDashboardConfigs}
-                className="w-full flex items-center justify-center px-4 py-2 border border-danger/30 text-danger bg-danger/5 hover:bg-danger/10 text-xs font-bold rounded-lg uppercase tracking-wider transition-all"
+                disabled={!isSuperAdmin}
+                className={`w-full flex items-center justify-center px-4 py-2 border border-danger/30 text-danger bg-danger/5 hover:bg-danger/10 text-xs font-bold rounded-lg uppercase tracking-wider transition-all ${!isSuperAdmin ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 Purge Dashboard Mappings Database
               </button>
+              {!isSuperAdmin && (
+                <div className="text-[10px] text-warning">SuperAdmin role required</div>
+              )}
             </div>
           </CyberCard>
         </div>
@@ -186,6 +176,30 @@ export const Settings: React.FC = () => {
           Apply & Save HUD Settings
         </CyberButton>
       </div>
+
+      <CyberModal isOpen={showPurgeModal} onClose={() => setShowPurgeModal(false)} title="CONFIRM PURGE">
+        <div className="space-y-4">
+          <p className="text-xs text-slate-300">
+            Type <span className="font-bold text-danger">CONFIRM</span> to purge all dashboard configurations.
+          </p>
+          <CyberInput
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            placeholder="Type CONFIRM to proceed"
+            className="w-full"
+          />
+<div className="flex gap-2 justify-end">
+                <CyberButton variant="secondary" onClick={() => setShowPurgeModal(false)}>Cancel</CyberButton>
+                <CyberButton 
+                  variant="danger" 
+                  onClick={handlePurgeConfirm}
+                  disabled={confirmText !== "CONFIRM"}
+                >
+                  Purge All
+                </CyberButton>
+              </div>
+        </div>
+      </CyberModal>
     </div>
   );
 };

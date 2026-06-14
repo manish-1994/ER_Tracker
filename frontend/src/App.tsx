@@ -21,13 +21,15 @@ import WorkspaceWorkbook from "./pages/WorkspaceWorkbook";
 import MainLayout from "./layouts/MainLayout";
 import { AuthProvider } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
+import { SettingsProvider } from "./context/SettingsContext";
 import RootRedirect from "./components/RootRedirect";
 
 const App: React.FC = () => {
   return (
     <ToastProvider>
       <AuthProvider>
-          <Routes>
+        <SettingsProvider>
+            <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
             <Route path="/" element={<RootRedirect />} />
@@ -125,9 +127,10 @@ const App: React.FC = () => {
                   </ProtectedRoute>
                 }
               />
-              <Route path="logout" element={<Logout />} />
+<Route path="logout" element={<Logout />} />
             </Route>
           </Routes>
+        </SettingsProvider>
       </AuthProvider>
     </ToastProvider>
   );
