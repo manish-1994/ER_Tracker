@@ -18,8 +18,9 @@ import AuditHistory from "./pages/AuditHistory";
 import StorageManagement from "./pages/StorageManagement";
 import UserWorkspace from "./pages/UserWorkspace";
 import WorkspaceWorkbook from "./pages/WorkspaceWorkbook";
+import UserPresence from "./pages/UserPresence";
 import MainLayout from "./layouts/MainLayout";
-import { AuthProvider } from "./context/AuthContext";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
 import { SettingsProvider } from "./context/SettingsContext";
 import RootRedirect from "./components/RootRedirect";
@@ -127,6 +128,14 @@ const App: React.FC = () => {
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="user-presence"
+                element={
+                  <ProtectedRoute>
+                    <UserPresenceRouteGuard />
+                  </ProtectedRoute>
+                }
+              />
 <Route path="logout" element={<Logout />} />
             </Route>
           </Routes>
@@ -134,6 +143,13 @@ const App: React.FC = () => {
       </AuthProvider>
     </ToastProvider>
   );
+};
+
+const UserPresenceRouteGuard: React.FC = () => {
+  const { appUser } = useAuth();
+  const hasAccess = appUser?.permissions?.includes("view_user_presence") || 
+                    appUser?.roles?.some(r => r.toLowerCase() === "superadmin");
+  return hasAccess ? <UserPresence /> : <Navigate to="/unauthorized" replace />;
 };
 
 export default App;

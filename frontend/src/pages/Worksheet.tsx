@@ -81,6 +81,7 @@ const Worksheet: React.FC = () => {
   const [selectedRecord, setSelectedRecord] = useState<any | null>(null);
   const [isDetailOpen, setDetailOpen] = useState(false);
   const [detailEditValues, setDetailEditValues] = useState<Record<string, string>>({});
+  const [drawerTab, setDrawerTab] = useState<"details" | "notes" | "timeline">("details");
   const [publicNotes, setPublicNotes] = useState<RecordNote[]>([]);
   const [privateNotes, setPrivateNotes] = useState<RecordNote[]>([]);
   const [recordAuditLogs, setRecordAuditLogs] = useState<any[]>([]);
@@ -740,6 +741,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
   const openRecordDetail = (row: any) => {
     setSelectedRecord(row);
     setDetailEditValues(row.data || {});
+    setDrawerTab("details");
     setDetailOpen(true);
     fetchRecordNotesAndTimeline(row.id);
   };
@@ -755,6 +757,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
     setNewPrivateNoteContent("");
     setEditingNoteId(null);
     setEditingNoteContent("");
+    setDrawerTab("details");
   };
 
   // Add record note handler
@@ -920,6 +923,31 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
       toast.error("Failed to update record");
     }
   };
+
+  const hasUnsavedChanges = useMemo(() => {
+    if (!selectedRecord?.data) return false;
+    return JSON.stringify(detailEditValues) !== JSON.stringify(selectedRecord.data);
+  }, [detailEditValues, selectedRecord?.data]);
+
+  // Keyboard shortcut listener
+  useEffect(() => {
+    if (!isDetailOpen) return;
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        closeRecordDetail();
+      }
+      
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+        e.preventDefault();
+        saveRecordDetail();
+      }
+    };
+    
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isDetailOpen, detailEditValues, selectedRecord]);
   
   const handleQuickAction = async (action: string, value?: string) => {
     if (!id || !selectedRecord) return;
@@ -1465,8 +1493,23 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
     return (
       <div className="space-y-6">
         <PageHeader title={id ? getCleanSheetName(id, "") : ""} subtitle="Worksheet Data View" />
-        <div className="p-10 text-center font-mono text-muted animate-pulse border border-[#00E5FF]/15 bg-black/40 rounded-xl">
-          Retrieving dynamic worksheet schemas and rows...
+        
+        {/* Skeleton Header Controls */}
+        <div className="bg-[#050b14]/50 border border-cyan-500/10 rounded-xl p-5 animate-pulse flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="w-48 h-8 bg-slate-800 rounded-md"></div>
+          <div className="w-96 h-8 bg-slate-800 rounded-md"></div>
+        </div>
+
+        {/* Skeleton Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="bg-[#090e1a]/85 border border-cyan-500/10 rounded-xl p-6 space-y-4 animate-pulse h-40">
+              <div className="w-1/3 h-3 bg-slate-800 rounded"></div>
+              <div className="w-3/4 h-5 bg-slate-800 rounded"></div>
+              <div className="w-1/2 h-3 bg-slate-800 rounded"></div>
+              <div className="w-full h-4 bg-slate-800 rounded pt-2"></div>
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -1515,7 +1558,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
       )}
 
       {/* Control Actions Header Deck */}
-      <CyberCard className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+      <div className="sticky top-16 z-20 bg-[#050b14]/95 backdrop-blur border border-cyan-500/20 rounded-xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.6)] flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center font-mono text-xs text-primary/80 gap-3 w-full lg:w-auto">
           <div className="flex items-center space-x-3 flex-shrink-0">
             <span>ACCESS LEVEL:</span>
@@ -1588,7 +1631,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
             </div>
           </div>
         </div>
-      </CyberCard>
+      </div>
 
       {/* Smart Views Filter Bar */}
       <div className="flex flex-wrap gap-2 mb-4">
@@ -1632,46 +1675,91 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
       
       {/* Main View - Card or Table */}
       {localRows.length === 0 ? (
-        <CyberCard className="p-12 text-center border-cyan-500/20 bg-[#050b14]/40 shadow-[0_0_15px_rgba(0,229,255,0.02)]">
-          <p className="text-cyan-400 font-mono text-xs tracking-wider uppercase animate-pulse">
-            No records available for this sheet.
+        <div className="p-12 text-center border border-dashed border-cyan-500/20 bg-[#090e1a]/50 rounded-xl max-w-lg mx-auto space-y-4 my-8 relative overflow-hidden group">
+          <div className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-cyan-500/40" />
+          <div className="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 border-cyan-500/40" />
+          
+          <div className="text-4xl text-cyan-500/60 animate-bounce">📁</div>
+          <h3 className="font-mono text-sm font-bold text-cyan-400 uppercase tracking-widest">No Operational Records Detected</h3>
+          <p className="font-mono text-[11px] text-slate-400 max-w-sm mx-auto leading-relaxed">
+            This workspace segment contains no telemetry records. Add a new row entry manually or verify ingestion logs.
           </p>
-        </CyberCard>
+          {canAdd && (
+            <div className="pt-2">
+              <CyberButton onClick={openAddModal} variant="primary" size="sm">
+                + Append First Entry
+              </CyberButton>
+            </div>
+          )}
+        </div>
       ) : colsData && colsData.length > 0 ? (
         viewMode === "card" ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredRows.map((row: any) => {
               const data = row.data || {};
               const visibleCols = colsData.filter((c: any) => !c.hidden);
-              
-              // Identify key fields for preview (first 3 visible)
               const previewFields = visibleCols.slice(0, 3);
               
+              const statusVal = String(data.status || data.state || "").toLowerCase();
+              const priorityVal = String(data.priority || data.urgency || "").toLowerCase();
+              
+              let cardBorderClass = "border-cyan-500/20";
+              let statusBadge = null;
+              
+              if (statusVal.includes("complete") || statusVal.includes("done")) {
+                statusBadge = <span className="text-[9px] font-mono px-2 py-0.5 bg-success/10 border border-success/30 text-success rounded-full uppercase tracking-wider font-bold">Completed</span>;
+              } else if (statusVal.includes("progress") || statusVal.includes("active")) {
+                statusBadge = <span className="text-[9px] font-mono px-2 py-0.5 bg-primary/10 border border-primary/30 text-primary rounded-full uppercase tracking-wider font-bold">In Progress</span>;
+              } else if (statusVal.includes("pending") || statusVal.includes("queue")) {
+                statusBadge = <span className="text-[9px] font-mono px-2 py-0.5 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-full uppercase tracking-wider font-bold">Pending</span>;
+              }
+              
+              if (priorityVal.includes("high") || priorityVal.includes("urgent")) {
+                cardBorderClass = "border-rose-500/30 hover:shadow-[0_0_20px_rgba(255,77,109,0.1)]";
+              } else if (priorityVal.includes("medium")) {
+                cardBorderClass = "border-amber-500/20 hover:shadow-[0_0_20px_rgba(255,184,0,0.1)]";
+              }
+              
               return (
-                <CyberCard 
+                <div 
                   key={row.id} 
-                  className="hover:shadow-[0_0_20px_rgba(0,229,255,0.15)] transition-all duration-300"
+                  className={`group relative bg-[#090e1a]/85 backdrop-blur border ${cardBorderClass} rounded-xl p-5 hover:bg-[#0c1426]/90 transition-all duration-300 cursor-pointer hover:-translate-y-1 hover:border-cyan-500/40 hover:shadow-[0_0_25px_rgba(0,229,255,0.12)] flex flex-col justify-between min-h-[180px] overflow-hidden`}
                   onClick={() => openRecordDetail(row)}
                 >
-                  <div className="space-y-3">
-                    {previewFields.map((col: any) => (
-                      <div key={col.name} className="flex flex-col">
-                        <span className="text-[10px] text-primary/60 uppercase tracking-wider font-bold">
-                          {col.display_name}
-                        </span>
-                        <span className="text-slate-200 font-mono text-sm truncate">
-                          {data[col.name] || <span className="text-slate-500 italic">Empty</span>}
-                        </span>
-                      </div>
-                    ))}
-                    <div className="pt-3 border-t border-cyan-500/20 flex justify-between items-center">
-                      <span className="text-[10px] text-slate-500">
-                        {visibleCols.length > 3 ? `+${visibleCols.length - 3} more fields` : "Full record"}
+                  <div className="absolute top-0 left-0 w-1.5 h-1.5 border-t border-l border-cyan-400/40 group-hover:border-cyan-400" />
+                  <div className="absolute bottom-0 right-0 w-1.5 h-1.5 border-b border-r border-cyan-400/40 group-hover:border-cyan-400" />
+                  
+                  <div className="space-y-3.5 flex-1">
+                    <div className="flex justify-between items-start">
+                      <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest">
+                        Record ID: #{row.id.substring(0, 8)}
                       </span>
-                      <span className="text-primary text-[10px] font-bold uppercase">Open Record →</span>
+                      {statusBadge}
+                    </div>
+
+                    <div className="space-y-2">
+                      {previewFields.map((col: any) => (
+                        <div key={col.name} className="flex justify-between items-center gap-4 text-xs font-mono border-b border-cyan-500/5 pb-1">
+                          <span className="text-slate-500 uppercase tracking-wider text-[9px] font-bold">
+                            {col.display_name}
+                          </span>
+                          <span className="text-slate-200 truncate max-w-[70%] font-semibold">
+                            {data[col.name] || <span className="text-slate-600 italic">Empty</span>}
+                          </span>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                </CyberCard>
+                  
+                  <div className="pt-3 border-t border-cyan-500/10 flex justify-between items-center mt-3">
+                    <span className="text-[9px] font-mono text-slate-500">
+                      {visibleCols.length > 3 ? `+${visibleCols.length - 3} more fields` : "All fields"}
+                    </span>
+                    <span className="text-cyan-400 text-[10px] font-mono font-bold uppercase tracking-wider group-hover:text-cyan-300 flex items-center gap-1">
+                      Open Record <span className="transition-transform group-hover:translate-x-1 duration-200">→</span>
+                    </span>
+                  </div>
+                </div>
               );
             })}
           </div>
@@ -2123,13 +2211,24 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
       {/* Record Details Side Panel */}
       <CyberDrawer isOpen={isDetailOpen} onClose={closeRecordDetail} title="Record Details">
         {selectedRecord && (
-          <div className="flex flex-col h-full space-y-5">
+          <div className="flex flex-col h-full space-y-4">
             {/* Record Header: ID, Created, Updated */}
             <div className="border-b border-cyan-500/20 pb-3 flex-shrink-0">
               <div className="grid grid-cols-1 gap-2 text-[10px] font-mono">
-                <div className="flex justify-between">
-                  <span className="text-primary/60 uppercase">Record ID:</span>
-                  <span className="text-slate-300 font-bold">{selectedRecord.id}</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-primary/60 uppercase font-bold">Record ID:</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-300 font-bold">{selectedRecord.id}</span>
+                    {hasUnsavedChanges ? (
+                      <span className="flex items-center gap-1 text-[9px] font-mono text-amber-400 px-2 py-0.5 border border-amber-500/20 bg-amber-500/5 rounded-full animate-pulse uppercase tracking-wider font-bold">
+                        <span className="w-1 h-1 rounded-full bg-amber-400"></span> Unsaved Draft
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 text-[9px] font-mono text-success px-2 py-0.5 border border-success/20 bg-success/5 rounded-full uppercase tracking-wider font-bold">
+                        <span className="w-1 h-1 rounded-full bg-success"></span> Saved
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-primary/60 uppercase">Created:</span>
@@ -2141,408 +2240,447 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
                 </div>
               </div>
             </div>
+
+            {/* Tabs Header Navigation */}
+            <div className="flex border-b border-cyan-500/25 font-mono text-[11px] flex-shrink-0 bg-[#090e1a] rounded-t-lg overflow-hidden">
+              {(["details", "notes", "timeline"] as const).map((tab) => {
+                const isActive = drawerTab === tab;
+                const label = tab.toUpperCase();
+                
+                let countBadge = null;
+                if (tab === "notes") {
+                  countBadge = ` (${publicNotes.length + privateNotes.length})`;
+                } else if (tab === "timeline") {
+                  countBadge = ` (${recordAuditLogs.length})`;
+                }
+
+                return (
+                  <button
+                    key={tab}
+                    onClick={() => setDrawerTab(tab)}
+                    className={`flex-1 py-2 text-center font-bold tracking-wider transition-all border-b-2 ${
+                      isActive 
+                        ? "text-cyan-400 border-cyan-400 bg-cyan-500/5 shadow-[inset_0_-2px_10px_rgba(0,229,255,0.05)]" 
+                        : "text-slate-400 border-transparent hover:text-slate-200"
+                    }`}
+                  >
+                    {label}{countBadge}
+                  </button>
+                );
+              })}
+            </div>
             
             {/* Scrollable Content Area */}
             <div className="flex-1 overflow-y-auto space-y-5 pr-2 min-h-0">
-              {/* Record Details Form Fields */}
-              <div className="space-y-4">
-                {colsData && colsData.map((col: any) => {
-                  const fieldName = col.display_name;
-                  const fieldValue = detailEditValues[col.name] || "";
-                  const inputClasses = "w-full px-3 py-2 bg-[#0a0f1d] text-[#E2E8F0] border border-cyan-500/30 focus:border-cyan-400 focus:outline-none font-mono text-sm rounded";
-                  const typeInfo = parseColumnType(col.data_type);
-                  
-                  let inputField = null;
-                  if (typeInfo.baseType === "Single Select") {
-                    inputField = (
-                      <select
-                        value={fieldValue}
-                        onChange={canEdit ? (e) => handleDetailFieldChange(col.name, e.target.value) : undefined}
-                        className={inputClasses}
-                        disabled={!canEdit}
-                      >
-                        <option value="">-- Select --</option>
-                        {typeInfo.options.map((opt) => (
-                          <option key={opt} value={opt}>{opt}</option>
-                        ))}
-                      </select>
-                    );
-                  } else if (typeInfo.baseType === "Multi Select") {
-                    const selectedList = fieldValue ? fieldValue.split(",").map((s: string) => s.trim()).filter(Boolean) : [];
-                    const handleMultiChange = (opt: string, checked: boolean) => {
-                      let newList = [...selectedList];
-                      if (checked) {
-                        if (!newList.includes(opt)) newList.push(opt);
-                      } else {
-                        newList = newList.filter((item: string) => item !== opt);
-                      }
-                      handleDetailFieldChange(col.name, newList.join(", "));
-                    };
-                    inputField = (
-                      <div className="flex flex-wrap gap-2 p-2 border border-cyan-500/20 rounded bg-black/40">
-                        {typeInfo.options.map((opt) => (
-                          <label key={opt} className="flex items-center gap-1 cursor-pointer hover:text-white">
-                            <input
-                              type="checkbox"
-                              checked={selectedList.includes(opt)}
-                              disabled={!canEdit}
-                              onChange={(e) => handleMultiChange(opt, e.target.checked)}
-                              className="rounded bg-[#0a0f1d] border-cyan-500/30 text-cyan-500 focus:ring-0 focus:ring-offset-0 text-xs"
-                            />
-                            <span>{opt}</span>
-                          </label>
-                        ))}
-                      </div>
-                    );
-                  } else if (typeInfo.baseType === "Boolean") {
-                    inputField = (
-                      <select
-                        value={String(fieldValue)}
-                        onChange={canEdit ? (e) => handleDetailFieldChange(col.name, e.target.value) : undefined}
-                        className={inputClasses}
-                        disabled={!canEdit}
-                      >
-                        <option value="">-- Select --</option>
-                        <option value="true">True</option>
-                        <option value="false">False</option>
-                      </select>
-                    );
-                  } else if (typeInfo.baseType === "Long Text") {
-                    inputField = (
-                      <textarea
-                        value={fieldValue}
-                        onChange={canEdit ? (e) => handleDetailFieldChange(col.name, e.target.value) : undefined}
-                        placeholder={`Enter ${fieldName}`}
-                        className={inputClasses}
-                        readOnly={!canEdit}
-                        rows={3}
-                      />
-                    );
-                  } else {
-                    let inputType = "text";
-                    if (typeInfo.baseType === "Number") inputType = "number";
-                    else if (typeInfo.baseType === "Date") inputType = "date";
-                    else if (typeInfo.baseType === "DateTime") inputType = "datetime-local";
-                    else if (typeInfo.baseType === "Email") inputType = "email";
-                    else if (typeInfo.baseType === "Phone") inputType = "tel";
-                    else if (typeInfo.baseType === "URL") inputType = "url";
-                    
-                    inputField = (
-                      <CyberInput
-                        type={inputType}
-                        value={fieldValue}
-                        onChange={canEdit ? (e) => handleDetailFieldChange(col.name, e.target.value) : undefined}
-                        placeholder={`Enter ${fieldName}`}
-                        readOnly={!canEdit}
-                      />
-                    );
-                  }
-                  
-                  return (
-                    <div key={col.name} className="space-y-2">
-                      <label className="block font-bold text-primary/80 uppercase tracking-wider text-[10px]">
-                        {fieldName} {typeInfo.required && <span className="text-rose-500 font-bold">*</span>}
-                      </label>
-                      {inputField}
-                    </div>
-                  );
-                })}
-              </div>
-              
-              {/* Quick Actions */}
-              <div className="pt-4 border-t border-cyan-500/20 space-y-3">
-                <div className="text-[10px] text-primary/60 uppercase font-bold">Quick Actions</div>
-                <div className="flex flex-wrap gap-2">
-                  {["Status", "Priority", "Tag"].map((action) => (
-                    <button
-                      key={action}
-                      className="px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-wider rounded border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 transition-all"
-                      onClick={() => {
-                        const newVal = prompt(`Enter new ${action}:`);
-                        if (newVal) handleQuickAction(action.toLowerCase(), newVal);
-                      }}
-                    >
-                      {action}
-                    </button>
-                  ))}
-                  <button
-                    className="px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-wider rounded border border-success/30 text-success hover:bg-success/10 transition-all"
-                    onClick={() => {
-                      if (colsData?.some((c: any) => c.name === "status")) {
-                        handleQuickAction("status", "Completed");
-                      }
-                    }}
-                  >
-                    ✓ Complete
-                  </button>
-                </div>
-              </div>
-
-              {/* Public Notes (Shared) */}
-              <div className="pt-5 border-t border-cyan-500/20 space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-cyan-400 uppercase tracking-widest neon-text-primary">
-                    Public Notes (Shared)
-                  </span>
-                  <CyberBadge variant="primary">{publicNotes.length}</CyberBadge>
-                </div>
-
-                {/* Notes list */}
-                <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
-                  {publicNotes.length === 0 ? (
-                    <p className="text-[11px] font-mono text-slate-500 italic">No public notes yet.</p>
-                  ) : (
-                    publicNotes.map((note) => {
-                      const isOwn = String(note.user_id) === String(appUser?.id);
-                      const isEditing = editingNoteId === note.id;
-                      const userDisplay = note.users?.username || getUserDisplayName(note.user_id);
-                      const canDeleteN = isOwn || isSuperAdmin || role === "Admin";
-                      return (
-                        <div key={note.id} className="p-3 bg-[#0a0f1d] border border-cyan-500/10 rounded font-mono text-xs space-y-2">
-                          <div className="flex items-center justify-between border-b border-cyan-500/5 pb-1 text-[10px]">
-                            <span className="text-cyan-400 font-bold">{userDisplay}</span>
-                            <span className="text-slate-500">{note.created_at ? new Date(note.created_at).toLocaleString() : ""}</span>
-                          </div>
-                          
-                          {isEditing ? (
-                            <div className="space-y-2 pt-1">
-                              <textarea
-                                className="w-full p-2 bg-[#020617] text-slate-200 border border-cyan-500/30 rounded focus:outline-none focus:border-cyan-400 text-xs"
-                                value={editingNoteContent}
-                                onChange={(e) => setEditingNoteContent(e.target.value)}
-                              />
-                              <div className="flex gap-2 justify-end">
-                                <button
-                                  onClick={() => {
-                                    setEditingNoteId(null);
-                                    setEditingNoteContent("");
-                                  }}
-                                  className="px-2 py-1 bg-slate-800 text-slate-400 hover:bg-slate-700 rounded text-[10px] uppercase font-bold"
-                                >
-                                  Cancel
-                                </button>
-                                <button
-                                  onClick={() => handleUpdateNote(note.id)}
-                                  className="px-2 py-1 bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 hover:bg-cyan-500/30 rounded text-[10px] uppercase font-bold"
-                                >
-                                  Save
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <p className="whitespace-pre-wrap text-slate-300 break-words pt-1">{note.content}</p>
-                          )}
-
-                          {!isEditing && (isOwn || canDeleteN) && (
-                            <div className="flex gap-2 justify-end text-[10px] pt-1">
-                              {isOwn && (
-                                <button
-                                  onClick={() => {
-                                    setEditingNoteId(note.id);
-                                    setEditingNoteContent(note.content);
-                                  }}
-                                  className="text-cyan-500 hover:text-cyan-400 font-bold uppercase"
-                                >
-                                  Edit
-                                </button>
-                              )}
-                              {canDeleteN && (
-                                <button
-                                  onClick={() => handleDeleteNote(note.id)}
-                                  className="text-rose-500 hover:text-rose-400 font-bold uppercase"
-                                >
-                                  Delete
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-
-                {/* Add Note Form */}
-                <div className="space-y-2 pt-2">
-                  <textarea
-                    placeholder="Candidate requested interview after 4 PM..."
-                    className="w-full p-2 bg-[#020617] text-[#E2E8F0] border border-cyan-500/20 focus:border-cyan-400 focus:outline-none font-mono text-xs rounded"
-                    value={newPublicNoteContent}
-                    onChange={(e) => setNewPublicNoteContent(e.target.value)}
-                    rows={2}
-                  />
-                  <div className="flex justify-end">
-                    <CyberButton
-                      type="button"
-                      onClick={() => handleAddNote(false)}
-                      variant="secondary"
-                      size="sm"
-                    >
-                      Add Public Note
-                    </CyberButton>
-                  </div>
-                </div>
-              </div>
-
-              {/* Private Notes (User Specific) */}
-              <div className="pt-5 border-t border-cyan-500/20 space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-amber-400 uppercase tracking-widest neon-text-warning">
-                    My Private Notes
-                  </span>
-                  <CyberBadge variant="warning">{privateNotes.length}</CyberBadge>
-                </div>
-
-                {/* Notes list */}
-                <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
-                  {privateNotes.length === 0 ? (
-                    <p className="text-[11px] font-mono text-slate-500 italic">No private notes yet.</p>
-                  ) : (
-                    privateNotes.map((note) => {
-                      const isEditing = editingNoteId === note.id;
-                      return (
-                        <div key={note.id} className="p-3 bg-[#0a0f1d] border border-amber-500/10 rounded font-mono text-xs space-y-2">
-                          <div className="flex items-center justify-between border-b border-amber-500/5 pb-1 text-[10px]">
-                            <span className="text-amber-400 font-bold">Personal Note</span>
-                            <span className="text-slate-500">{note.created_at ? new Date(note.created_at).toLocaleString() : ""}</span>
-                          </div>
-                          
-                          {isEditing ? (
-                            <div className="space-y-2 pt-1">
-                              <textarea
-                                className="w-full p-2 bg-[#020617] text-slate-200 border border-amber-500/30 rounded focus:outline-none focus:border-amber-400 text-xs"
-                                value={editingNoteContent}
-                                onChange={(e) => setEditingNoteContent(e.target.value)}
-                              />
-                              <div className="flex gap-2 justify-end">
-                                <button
-                                  onClick={() => {
-                                    setEditingNoteId(null);
-                                    setEditingNoteContent("");
-                                  }}
-                                  className="px-2 py-1 bg-slate-800 text-slate-400 hover:bg-slate-700 rounded text-[10px] uppercase font-bold"
-                                >
-                                  Cancel
-                                </button>
-                                <button
-                                  onClick={() => handleUpdateNote(note.id)}
-                                  className="px-2 py-1 bg-amber-500/20 text-amber-400 border border-amber-500/40 hover:bg-amber-500/30 rounded text-[10px] uppercase font-bold"
-                                >
-                                  Save
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <p className="whitespace-pre-wrap text-slate-300 break-words pt-1">{note.content}</p>
-                          )}
-
-                          {!isEditing && (
-                            <div className="flex gap-2 justify-end text-[10px] pt-1">
-                              <button
-                                onClick={() => {
-                                  setEditingNoteId(note.id);
-                                  setEditingNoteContent(note.content);
-                                }}
-                                className="text-amber-500 hover:text-amber-400 font-bold uppercase"
-                              >
-                                Edit
-                              </button>
-                              <button
-                                onClick={() => handleDeleteNote(note.id)}
-                                className="text-rose-500 hover:text-rose-400 font-bold uppercase"
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-
-                {/* Add Note Form */}
-                <div className="space-y-2 pt-2">
-                  <textarea
-                    placeholder="Add a personal reminder..."
-                    className="w-full p-2 bg-[#020617] text-[#E2E8F0] border border-amber-500/20 focus:border-amber-400 focus:outline-none font-mono text-xs rounded"
-                    value={newPrivateNoteContent}
-                    onChange={(e) => setNewPrivateNoteContent(e.target.value)}
-                    rows={2}
-                  />
-                  <div className="flex justify-end">
-                    <CyberButton
-                      type="button"
-                      onClick={() => handleAddNote(true)}
-                      variant="secondary"
-                      size="sm"
-                    >
-                      Add Private Note
-                    </CyberButton>
-                  </div>
-                </div>
-              </div>
-
-              {/* Activity Timeline */}
-              <div className="pt-5 border-t border-cyan-500/20 space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-rose-400 uppercase tracking-widest neon-text-danger">
-                    Activity Timeline
-                  </span>
-                  <CyberBadge variant="danger">{recordAuditLogs.length}</CyberBadge>
-                </div>
-
-                <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
-                  {recordAuditLogs.length === 0 ? (
-                    <p className="text-[11px] font-mono text-slate-500 italic">No activity registered for this record.</p>
-                  ) : (
-                    recordAuditLogs.map((log) => {
-                      const userDisplay = getUserDisplayName(log.user_id);
-                      let message = "";
+              {drawerTab === "details" && (
+                <>
+                  {/* Record Details Form Fields */}
+                  <div className="space-y-4">
+                    {colsData && colsData.map((col: any) => {
+                      const fieldName = col.display_name;
+                      const fieldValue = detailEditValues[col.name] || "";
+                      const inputClasses = "w-full px-3 py-2 bg-[#0a0f1d] text-[#E2E8F0] border border-cyan-500/30 focus:border-cyan-400 focus:outline-none font-mono text-sm rounded";
+                      const typeInfo = parseColumnType(col.data_type);
                       
-                      switch (log.action) {
-                        case "cell_updated":
-                          message = `Updated field to "${log.payload?.new_value || ""}" (was "${log.payload?.old_value || ""}")`;
-                          break;
-                        case "row_added":
-                          message = `Created record`;
-                          break;
-                        case "record_updated":
-                          message = `Updated record details`;
-                          break;
-                        case "record_deleted":
-                          message = `Deleted record`;
-                          break;
-                        case "public_note_added":
-                          message = `Added public note: "${log.payload?.new_value || ""}"`;
-                          break;
-                        case "private_note_added":
-                          message = `Added private note`;
-                          break;
-                        case "note_updated":
-                          message = `Updated note content`;
-                          break;
-                        case "note_deleted":
-                          message = `Deleted a note`;
-                          break;
-                        default:
-                          message = log.action.replace(/_/g, " ");
-                          break;
-                      }
-
-                      return (
-                        <div key={log.id} className="p-2 bg-[#0a0f1d]/50 border border-cyan-500/5 rounded font-mono text-[10px] space-y-1">
-                          <div className="flex justify-between text-slate-500">
-                            <span className="text-rose-400 font-bold">{userDisplay}</span>
-                            <span>{log.timestamp ? new Date(log.timestamp).toLocaleString() : ""}</span>
+                      let inputField = null;
+                      if (typeInfo.baseType === "Single Select") {
+                        inputField = (
+                          <select
+                            value={fieldValue}
+                            onChange={canEdit ? (e) => handleDetailFieldChange(col.name, e.target.value) : undefined}
+                            className={inputClasses}
+                            disabled={!canEdit}
+                          >
+                            <option value="">-- Select --</option>
+                            {typeInfo.options.map((opt) => (
+                              <option key={opt} value={opt}>{opt}</option>
+                            ))}
+                          </select>
+                        );
+                      } else if (typeInfo.baseType === "Multi Select") {
+                        const selectedList = fieldValue ? fieldValue.split(",").map((s: string) => s.trim()).filter(Boolean) : [];
+                        const handleMultiChange = (opt: string, checked: boolean) => {
+                          let newList = [...selectedList];
+                          if (checked) {
+                            if (!newList.includes(opt)) newList.push(opt);
+                          } else {
+                            newList = newList.filter((item: string) => item !== opt);
+                          }
+                          handleDetailFieldChange(col.name, newList.join(", "));
+                        };
+                        inputField = (
+                          <div className="flex flex-wrap gap-2 p-2 border border-cyan-500/20 rounded bg-black/40">
+                            {typeInfo.options.map((opt) => (
+                              <label key={opt} className="flex items-center gap-1 cursor-pointer hover:text-white">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedList.includes(opt)}
+                                  disabled={!canEdit}
+                                  onChange={(e) => handleMultiChange(opt, e.target.checked)}
+                                  className="rounded bg-[#0a0f1d] border-cyan-500/30 text-cyan-500 focus:ring-0 focus:ring-offset-0 text-xs"
+                                />
+                                <span>{opt}</span>
+                              </label>
+                            ))}
                           </div>
-                          <p className="text-slate-300 break-words">{message}</p>
+                        );
+                      } else if (typeInfo.baseType === "Boolean") {
+                        inputField = (
+                          <select
+                            value={String(fieldValue)}
+                            onChange={canEdit ? (e) => handleDetailFieldChange(col.name, e.target.value) : undefined}
+                            className={inputClasses}
+                            disabled={!canEdit}
+                          >
+                            <option value="">-- Select --</option>
+                            <option value="true">True</option>
+                            <option value="false">False</option>
+                          </select>
+                        );
+                      } else if (typeInfo.baseType === "Long Text") {
+                        inputField = (
+                          <textarea
+                            value={fieldValue}
+                            onChange={canEdit ? (e) => handleDetailFieldChange(col.name, e.target.value) : undefined}
+                            placeholder={`Enter ${fieldName}`}
+                            className={inputClasses}
+                            readOnly={!canEdit}
+                            rows={3}
+                          />
+                        );
+                      } else {
+                        let inputType = "text";
+                        if (typeInfo.baseType === "Number") inputType = "number";
+                        else if (typeInfo.baseType === "Date") inputType = "date";
+                        else if (typeInfo.baseType === "DateTime") inputType = "datetime-local";
+                        else if (typeInfo.baseType === "Email") inputType = "email";
+                        else if (typeInfo.baseType === "Phone") inputType = "tel";
+                        else if (typeInfo.baseType === "URL") inputType = "url";
+                        
+                        inputField = (
+                          <CyberInput
+                            type={inputType}
+                            value={fieldValue}
+                            onChange={canEdit ? (e) => handleDetailFieldChange(col.name, e.target.value) : undefined}
+                            placeholder={`Enter ${fieldName}`}
+                            readOnly={!canEdit}
+                          />
+                        );
+                      }
+                      
+                      return (
+                        <div key={col.name} className="space-y-2">
+                          <label className="block font-bold text-primary/80 uppercase tracking-wider text-[10px]">
+                            {fieldName} {typeInfo.required && <span className="text-rose-500 font-bold">*</span>}
+                          </label>
+                          {inputField}
                         </div>
                       );
-                    })
-                  )}
-                </div>
-              </div>
+                    })}
+                  </div>
+                  
+                  {/* Quick Actions */}
+                  <div className="pt-4 border-t border-cyan-500/20 space-y-3">
+                    <div className="text-[10px] text-primary/60 uppercase font-bold">Quick Actions</div>
+                    <div className="flex flex-wrap gap-2">
+                      {["Status", "Priority", "Tag"].map((action) => (
+                        <button
+                          key={action}
+                          className="px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-wider rounded border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 transition-all"
+                          onClick={() => {
+                            const newVal = prompt(`Enter new ${action}:`);
+                            if (newVal) handleQuickAction(action.toLowerCase(), newVal);
+                          }}
+                        >
+                          {action}
+                        </button>
+                      ))}
+                      <button
+                        className="px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-wider rounded border border-success/30 text-success hover:bg-success/10 transition-all"
+                        onClick={() => {
+                          if (colsData?.some((c: any) => c.name === "status")) {
+                            handleQuickAction("status", "Completed");
+                          }
+                        }}
+                      >
+                        ✓ Complete
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {drawerTab === "notes" && (
+                <>
+                  {/* Public Notes (Shared) */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-cyan-400 uppercase tracking-widest neon-text-primary">
+                        Public Notes (Shared)
+                      </span>
+                      <CyberBadge variant="primary">{publicNotes.length}</CyberBadge>
+                    </div>
+
+                    <div className="space-y-3 max-h-[250px] overflow-y-auto pr-1">
+                      {publicNotes.length === 0 ? (
+                        <p className="text-[11px] font-mono text-slate-500 italic">No public notes yet.</p>
+                      ) : (
+                        publicNotes.map((note) => {
+                          const isOwn = String(note.user_id) === String(appUser?.id);
+                          const isEditing = editingNoteId === note.id;
+                          const userDisplay = note.users?.username || getUserDisplayName(note.user_id);
+                          const canDeleteN = isOwn || isSuperAdmin || role === "Admin";
+                          return (
+                            <div key={note.id} className="p-3 bg-[#0a0f1d] border border-cyan-500/10 rounded font-mono text-xs space-y-2">
+                              <div className="flex items-center justify-between border-b border-cyan-500/5 pb-1 text-[10px]">
+                                <span className="text-cyan-400 font-bold">{userDisplay}</span>
+                                <span className="text-slate-500">{note.created_at ? new Date(note.created_at).toLocaleString() : ""}</span>
+                              </div>
+                              
+                              {isEditing ? (
+                                <div className="space-y-2 pt-1">
+                                  <textarea
+                                    className="w-full p-2 bg-[#020617] text-slate-200 border border-cyan-500/30 rounded focus:outline-none focus:border-cyan-400 text-xs"
+                                    value={editingNoteContent}
+                                    onChange={(e) => setEditingNoteContent(e.target.value)}
+                                  />
+                                  <div className="flex gap-2 justify-end">
+                                    <button
+                                      onClick={() => {
+                                        setEditingNoteId(null);
+                                        setEditingNoteContent("");
+                                      }}
+                                      className="px-2 py-1 bg-slate-800 text-slate-400 hover:bg-slate-700 rounded text-[10px] uppercase font-bold"
+                                    >
+                                      Cancel
+                                    </button>
+                                    <button
+                                      onClick={() => handleUpdateNote(note.id)}
+                                      className="px-2 py-1 bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 hover:bg-cyan-500/30 rounded text-[10px] uppercase font-bold"
+                                    >
+                                      Save
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <p className="whitespace-pre-wrap text-slate-300 break-words pt-1">{note.content}</p>
+                              )}
+
+                              {!isEditing && (isOwn || canDeleteN) && (
+                                <div className="flex gap-2 justify-end text-[10px] pt-1">
+                                  {isOwn && (
+                                    <button
+                                      onClick={() => {
+                                        setEditingNoteId(note.id);
+                                        setEditingNoteContent(note.content);
+                                      }}
+                                      className="text-cyan-500 hover:text-cyan-400 font-bold uppercase"
+                                    >
+                                      Edit
+                                    </button>
+                                  )}
+                                  {canDeleteN && (
+                                    <button
+                                      onClick={() => handleDeleteNote(note.id)}
+                                      className="text-rose-500 hover:text-rose-400 font-bold uppercase"
+                                    >
+                                      Delete
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+
+                    {/* Add Note Form */}
+                    <div className="space-y-2 pt-2">
+                      <textarea
+                        placeholder="Add public note..."
+                        className="w-full p-2 bg-[#020617] text-[#E2E8F0] border border-cyan-500/20 focus:border-cyan-400 focus:outline-none font-mono text-xs rounded"
+                        value={newPublicNoteContent}
+                        onChange={(e) => setNewPublicNoteContent(e.target.value)}
+                        rows={2}
+                      />
+                      <div className="flex justify-end">
+                        <CyberButton
+                          type="button"
+                          onClick={() => handleAddNote(false)}
+                          variant="secondary"
+                          size="sm"
+                        >
+                          Add Public Note
+                        </CyberButton>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Private Notes (User Specific) */}
+                  <div className="pt-5 border-t border-cyan-500/20 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-amber-400 uppercase tracking-widest neon-text-warning">
+                        My Private Notes
+                      </span>
+                      <CyberBadge variant="warning">{privateNotes.length}</CyberBadge>
+                    </div>
+
+                    <div className="space-y-3 max-h-[250px] overflow-y-auto pr-1">
+                      {privateNotes.length === 0 ? (
+                        <p className="text-[11px] font-mono text-slate-500 italic">No private notes yet.</p>
+                      ) : (
+                        privateNotes.map((note) => {
+                          const isEditing = editingNoteId === note.id;
+                          return (
+                            <div key={note.id} className="p-3 bg-[#0a0f1d] border border-amber-500/10 rounded font-mono text-xs space-y-2">
+                              <div className="flex items-center justify-between border-b border-amber-500/5 pb-1 text-[10px]">
+                                <span className="text-amber-400 font-bold">Personal Note</span>
+                                <span className="text-slate-500">{note.created_at ? new Date(note.created_at).toLocaleString() : ""}</span>
+                              </div>
+                              
+                              {isEditing ? (
+                                <div className="space-y-2 pt-1">
+                                  <textarea
+                                    className="w-full p-2 bg-[#020617] text-slate-200 border border-amber-500/30 rounded focus:outline-none focus:border-amber-400 text-xs"
+                                    value={editingNoteContent}
+                                    onChange={(e) => setEditingNoteContent(e.target.value)}
+                                  />
+                                  <div className="flex gap-2 justify-end">
+                                    <button
+                                      onClick={() => {
+                                        setEditingNoteId(null);
+                                        setEditingNoteContent("");
+                                      }}
+                                      className="px-2 py-1 bg-slate-800 text-slate-400 hover:bg-slate-700 rounded text-[10px] uppercase font-bold"
+                                    >
+                                      Cancel
+                                    </button>
+                                    <button
+                                      onClick={() => handleUpdateNote(note.id)}
+                                      className="px-2 py-1 bg-amber-500/20 text-amber-400 border border-amber-500/40 hover:bg-amber-500/30 rounded text-[10px] uppercase font-bold"
+                                    >
+                                      Save
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <p className="whitespace-pre-wrap text-slate-300 break-words pt-1">{note.content}</p>
+                              )}
+
+                              {!isEditing && (
+                                <div className="flex gap-2 justify-end text-[10px] pt-1">
+                                  <button
+                                    onClick={() => {
+                                      setEditingNoteId(note.id);
+                                      setEditingNoteContent(note.content);
+                                    }}
+                                    className="text-amber-500 hover:text-amber-400 font-bold uppercase"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteNote(note.id)}
+                                    className="text-rose-500 hover:text-rose-400 font-bold uppercase"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+
+                    {/* Add Note Form */}
+                    <div className="space-y-2 pt-2">
+                      <textarea
+                        placeholder="Add personal note..."
+                        className="w-full p-2 bg-[#020617] text-[#E2E8F0] border border-amber-500/20 focus:border-amber-400 focus:outline-none font-mono text-xs rounded"
+                        value={newPrivateNoteContent}
+                        onChange={(e) => setNewPrivateNoteContent(e.target.value)}
+                        rows={2}
+                      />
+                      <div className="flex justify-end">
+                        <CyberButton
+                          type="button"
+                          onClick={() => handleAddNote(true)}
+                          variant="secondary"
+                          size="sm"
+                        >
+                          Add Private Note
+                        </CyberButton>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {drawerTab === "timeline" && (
+                <>
+                  {/* Activity Timeline */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-rose-400 uppercase tracking-widest neon-text-danger">
+                        Activity Timeline
+                      </span>
+                      <CyberBadge variant="danger">{recordAuditLogs.length}</CyberBadge>
+                    </div>
+
+                    <div className="space-y-3 max-h-[450px] overflow-y-auto pr-1">
+                      {recordAuditLogs.length === 0 ? (
+                        <p className="text-[11px] font-mono text-slate-500 italic">No activity registered for this record.</p>
+                      ) : (
+                        recordAuditLogs.map((log) => {
+                          const userDisplay = getUserDisplayName(log.user_id);
+                          let message = "";
+                          
+                          switch (log.action) {
+                            case "cell_updated":
+                              message = `Updated field to "${log.payload?.new_value || ""}" (was "${log.payload?.old_value || ""}")`;
+                              break;
+                            case "row_added":
+                              message = `Created record`;
+                              break;
+                            case "record_updated":
+                              message = `Updated record details`;
+                              break;
+                            case "record_deleted":
+                              message = `Deleted record`;
+                              break;
+                            case "public_note_added":
+                              message = `Added public note: "${log.payload?.new_value || ""}"`;
+                              break;
+                            case "private_note_added":
+                              message = `Added private note`;
+                              break;
+                            case "note_updated":
+                              message = `Updated note content`;
+                              break;
+                            case "note_deleted":
+                              message = `Deleted a note`;
+                              break;
+                            default:
+                              message = log.action.replace(/_/g, " ");
+                              break;
+                          }
+
+                          return (
+                            <div key={log.id} className="p-2 bg-[#0a0f1d]/50 border border-cyan-500/5 rounded font-mono text-[10px] space-y-1">
+                              <div className="flex justify-between text-slate-500">
+                                <span className="text-rose-400 font-bold">{userDisplay}</span>
+                                <span>{log.timestamp ? new Date(log.timestamp).toLocaleString() : ""}</span>
+                              </div>
+                              <p className="text-slate-300 break-words">{message}</p>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
             
             {/* Action Buttons: Save, Delete, Close */}

@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { loadRolesForUser } from "../services/authHelper";
 import { checkPermission } from "../services/roleService";
 import Header from "../components/Header";
 import { motion, AnimatePresence } from "framer-motion";
+import { supabase } from "../services/supabaseClient";
+import { trackUserPresence, clearUserPresence } from "../services/presenceService";
 import {
   LayoutDashboard,
   BookOpen,
@@ -20,7 +22,8 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
-  LogOut
+  LogOut,
+  Activity
 } from "lucide-react";
 
 export const MainLayout: React.FC = () => {
@@ -32,6 +35,12 @@ export const MainLayout: React.FC = () => {
   const [isCollapsed, setIsCollapsed] = useState<boolean>(true);
   // Mobile drawer state
   const [isMobileOpen, setIsMobileOpen] = useState<boolean>(false);
+
+  // User presence tracking state & refs
+  const [sheetWbMap, setSheetWbMap] = useState<Record<string, number>>({});
+  const [presenceStatus, setPresenceStatus] = useState<"online" | "idle">("online");
+  const lastActivityRef = useRef<number>(Date.now());
+  const lastTrackedRef = useRef<number>(0);
 
   // Auto-collapse on smaller screens (Tablet width)
   useEffect(() => {
@@ -68,6 +77,102 @@ export const MainLayout: React.FC = () => {
     };
   }, [appUser?.id, appUser?.roles]);
 
+  // Presence Tracking Effect
+  useEffect(() => {
+    if (!appUser?.id) return;
+
+    const updatePresence = async (forceStatus?: "online" | "idle") => {
+      const currentStatus = forceStatus || (Date.now() - lastActivityRef.current >= 5 * 60 * 1000 ? "idle" : "online");
+      
+      // Resolve workbook id from route location
+      let resolvedWbId: number | null = null;
+      const pathParts = location.pathname.split("/");
+      
+      if (location.pathname.startsWith("/workbooks/")) {
+        const idStr = pathParts[2];
+        if (idStr && !isNaN(Number(idStr))) resolvedWbId = Number(idStr);
+      } else if (location.pathname.startsWith("/workspace/workbook/")) {
+        const idStr = pathParts[3];
+        if (idStr && !isNaN(Number(idStr))) resolvedWbId = Number(idStr);
+      } else if (location.pathname.startsWith("/worksheets/")) {
+        const sheetId = pathParts[2];
+        if (sheetId) {
+          if (sheetWbMap[sheetId]) {
+            resolvedWbId = sheetWbMap[sheetId];
+          } else {
+            try {
+              const { data } = await supabase
+                .from("sheets")
+                .select("workbook_id")
+                .eq("id", sheetId)
+                .single();
+              if (data?.workbook_id) {
+                const wbId = Number(data.workbook_id);
+                setSheetWbMap(prev => ({ ...prev, [sheetId]: wbId }));
+                resolvedWbId = wbId;
+              }
+            } catch {
+              // ignore
+            }
+          }
+        }
+      }
+
+      // Format current page label
+      const rawPath = pathParts[1] || "";
+      const pageName = rawPath 
+        ? rawPath.charAt(0).toUpperCase() + rawPath.slice(1).replace("-", " ") 
+        : "Dashboard";
+
+      await trackUserPresence(appUser.id, appUser.username, currentStatus, pageName, resolvedWbId);
+      lastTrackedRef.current = Date.now();
+    };
+
+    // User activity listener
+    const handleActivity = () => {
+      lastActivityRef.current = Date.now();
+      if (presenceStatus !== "online") {
+        setPresenceStatus("online");
+        updatePresence("online");
+      } else if (Date.now() - lastTrackedRef.current > 30 * 1000) {
+        // Debounce database presence updates (every 30 seconds max)
+        updatePresence("online");
+      }
+    };
+
+    window.addEventListener("mousemove", handleActivity);
+    window.addEventListener("keydown", handleActivity);
+    window.addEventListener("click", handleActivity);
+    window.addEventListener("scroll", handleActivity);
+
+    // Initial update
+    updatePresence("online");
+
+    // Check for idle state transitions every 10 seconds
+    const checkIdleInterval = setInterval(() => {
+      const idleTime = Date.now() - lastActivityRef.current;
+      if (idleTime >= 5 * 60 * 1000 && presenceStatus === "online") {
+        setPresenceStatus("idle");
+        updatePresence("idle");
+      }
+    }, 10000);
+
+    return () => {
+      window.removeEventListener("mousemove", handleActivity);
+      window.removeEventListener("keydown", handleActivity);
+      window.removeEventListener("click", handleActivity);
+      window.removeEventListener("scroll", handleActivity);
+      clearInterval(checkIdleInterval);
+    };
+  }, [appUser?.id, location.pathname, presenceStatus, sheetWbMap]);
+
+  const handleLogout = async () => {
+    if (appUser?.id) {
+      await clearUserPresence(appUser.id);
+    }
+    logout();
+  };
+
   const userRolesList = appUser?.roles || sidebarRoles || [];
 
   const showWorkbooks = checkPermission(userRolesList, "Workbooks", "view");
@@ -77,6 +182,7 @@ export const MainLayout: React.FC = () => {
   const showUsers = checkPermission(userRolesList, "Users", "view");
   const showRoles = checkPermission(userRolesList, "Roles", "view");
   const showAuditLogs = userRolesList.some((r) => r.toLowerCase() === "superadmin");
+  const showUserPresence = appUser?.permissions?.includes("view_user_presence") || userRolesList.some((r) => r.toLowerCase() === "superadmin");
 
   const isOnline = true;
 
@@ -108,6 +214,13 @@ export const MainLayout: React.FC = () => {
           <Briefcase className={`w-4.5 h-4.5 shrink-0 ${collapsed ? "" : "mr-3"}`} />
           {!collapsed && <span className="truncate">User Workspace</span>}
         </Link>
+
+        {!loading && showUserPresence && (
+          <Link to="/user-presence" className={getLinkClass("/user-presence", collapsed)} onClick={() => setIsMobileOpen(false)}>
+            <Activity className={`w-4.5 h-4.5 shrink-0 ${collapsed ? "" : "mr-3"}`} />
+            {!collapsed && <span className="truncate">Presence</span>}
+          </Link>
+        )}
 
         {!loading && showReports && (
           <Link to="/reports" className={getLinkClass("/reports", collapsed)} onClick={() => setIsMobileOpen(false)}>
@@ -207,7 +320,7 @@ export const MainLayout: React.FC = () => {
         {/* Footer actions */}
         <div className="px-3 mt-auto">
           <button 
-            onClick={logout} 
+            onClick={handleLogout} 
             className={`flex items-center justify-center py-2.5 font-mono text-xs font-bold uppercase tracking-widest rounded-lg border border-danger/25 text-danger bg-danger/5 hover:bg-danger/10 hover:shadow-[0_0_12px_rgba(255,77,109,0.2)] transition-all duration-300 ${isCollapsed ? "w-10 h-10 mx-auto px-0" : "w-full px-4"}`}
             title="Logout"
           >
@@ -269,7 +382,7 @@ export const MainLayout: React.FC = () => {
               {/* Logout Footer Button */}
               <div className="px-4 mt-auto">
                 <button 
-                  onClick={() => { setIsMobileOpen(false); logout(); }} 
+                  onClick={() => { setIsMobileOpen(false); handleLogout(); }} 
                   className="w-full flex items-center justify-center px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-widest rounded-lg border border-danger/25 text-danger bg-danger/5 hover:bg-danger/10 hover:shadow-[0_0_12px_rgba(255,77,109,0.2)] transition-all duration-300"
                 >
                   Logout

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { CyberCard } from "../components/ui/CyberCard";
 import { CyberStatCard } from "../components/ui/CyberStatCard";
+import { BookOpen, Layers, Users, CloudUpload } from "lucide-react";
 import { supabase } from "../services/supabaseClient";
 import { useAuth } from "../context/AuthContext";
 import { getRows } from "../services/rowService";
@@ -379,10 +380,10 @@ const Dashboard = () => {
         <>
           {/* Overview Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <CyberStatCard title="Total Workbooks" value={isLoadingFallback ? "..." : stats.workbooks} variant="primary" />
-            <CyberStatCard title="Active Worksheets" value={isLoadingFallback ? "..." : stats.worksheets} variant="success" />
-            <CyberStatCard title="Registered Operators" value={isLoadingFallback ? "..." : stats.users} variant="secondary" />
-            <CyberStatCard title="Recent Ingestions" value={isLoadingFallback ? "..." : stats.recentUploads} variant="warning" />
+            <CyberStatCard title="Total Workbooks" value={isLoadingFallback ? "..." : stats.workbooks} variant="primary" icon={<BookOpen className="w-5 h-5 text-primary shadow-[0_0_10px_#00E5FF]" />} />
+            <CyberStatCard title="Active Worksheets" value={isLoadingFallback ? "..." : stats.worksheets} variant="success" icon={<Layers className="w-5 h-5 text-success shadow-[0_0_10px_#00FF9D]" />} />
+            <CyberStatCard title="Registered Operators" value={isLoadingFallback ? "..." : stats.users} variant="secondary" icon={<Users className="w-5 h-5 text-secondary shadow-[0_0_10px_#8B5CF6]" />} />
+            <CyberStatCard title="Recent Ingestions" value={isLoadingFallback ? "..." : stats.recentUploads} variant="warning" icon={<CloudUpload className="w-5 h-5 text-warning shadow-[0_0_10px_#FFB800]" />} />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -396,8 +397,8 @@ const Dashboard = () => {
                   <ResponsiveContainer width="100%" height="100%">
                     <ReChartsLineChart data={chartData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#0a0f1d" />
-                      <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} fontClassName="font-mono" />
-                      <YAxis stroke="#94a3b8" fontSize={11} fontClassName="font-mono" />
+                      <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tick={{ className: "font-mono" }} />
+                      <YAxis stroke="#94a3b8" fontSize={11} tick={{ className: "font-mono" }} />
                       <Tooltip 
                         contentStyle={{ 
                           backgroundColor: "rgba(8,15,30,0.9)", 

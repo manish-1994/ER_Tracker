@@ -18,6 +18,7 @@ import { useToast } from "../context/ToastContext";
 import * as XLSX from "xlsx";
 import { SheetSelector } from "../components/SheetSelector";
 import { getWorkspaceAssignments, assignWorkbook, getAssignableUsers, AssignableUser } from "../services/workspaceService";
+import { Grid, List, Eye, Edit3, UserPlus, Trash2, Clock, BookOpen, Layers } from "lucide-react";
 
 const Workbooks = () => {
   const navigate = useNavigate();
@@ -65,6 +66,10 @@ const Workbooks = () => {
   const [users, setUsers] = useState<AssignableUser[]>([]);
   const [assignSuccess, setAssignSuccess] = useState<AssignableUser | null>(null);
 
+  const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
+  const [workbookStats, setWorkbookStats] = useState<Record<string, { sheetsCount: number; rowsCount: number; lastModified: string }>>({});
+  const [statsLoading, setStatsLoading] = useState(false);
+
   const fetchWorkbooks = async () => {
     const data = await getWorkbooks();
     return data;
@@ -74,6 +79,77 @@ const Workbooks = () => {
     queryKey: ["workbooks"], 
     queryFn: fetchWorkbooks 
   });
+
+  useEffect(() => {
+    if (!data || data.length === 0) return;
+
+    const loadStats = async () => {
+      setStatsLoading(true);
+      try {
+        const { data: sheets, error: sheetsErr } = await supabase
+          .from("sheets")
+          .select("id, workbook_id, records_table_name, name, updated_at, created_at");
+        
+        if (sheetsErr) throw sheetsErr;
+
+        const statsMap: Record<string, { sheetsCount: number; rowsCount: number; lastModified: string }> = {};
+
+        data.forEach((wb: any) => {
+          statsMap[wb.id] = {
+            sheetsCount: 0,
+            rowsCount: 0,
+            lastModified: wb.updated_at || wb.created_at || new Date().toISOString(),
+          };
+        });
+
+        const sheetPromises = (sheets || []).map(async (sheet) => {
+          const wbId = sheet.workbook_id;
+          if (!statsMap[wbId]) return;
+
+          statsMap[wbId].sheetsCount += 1;
+
+          let count = 0;
+          const tableName = sheet.records_table_name || `records_${sheet.id}`;
+          try {
+            const { count: dbCount, error } = await supabase
+              .from(tableName)
+              .select("*", { count: "exact", head: true });
+            
+            if (!error && dbCount !== null) {
+              count = dbCount;
+            } else {
+              const localData = localStorage.getItem(`local_rows_${sheet.id}`);
+              if (localData) {
+                count = JSON.parse(localData).length;
+              }
+            }
+          } catch {
+            const localData = localStorage.getItem(`local_rows_${sheet.id}`);
+            if (localData) {
+              count = JSON.parse(localData).length;
+            }
+          }
+
+          statsMap[wbId].rowsCount += count;
+
+          const sheetTime = new Date(sheet.updated_at || sheet.created_at || 0).getTime();
+          const currentMaxTime = new Date(statsMap[wbId].lastModified).getTime();
+          if (sheetTime > currentMaxTime) {
+            statsMap[wbId].lastModified = sheet.updated_at || sheet.created_at;
+          }
+        });
+
+        await Promise.all(sheetPromises);
+        setWorkbookStats(statsMap);
+      } catch (err) {
+        console.error("Failed to load workbook stats:", err);
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+
+    loadStats();
+  }, [data]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -473,27 +549,127 @@ const Workbooks = () => {
 
         <div className="space-y-6 lg:col-span-2">
           <CyberCard className="space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-cyan-500/15 pb-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-cyan-500/15 pb-3">
               <h2 className="text-md font-mono font-bold tracking-widest text-primary uppercase">
                 Archive Registry
               </h2>
-              <div className="w-full sm:w-60">
-                <CyberInput
-                  type="text"
-                  placeholder="Filter archives..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="w-full sm:w-60">
+                  <CyberInput
+                    type="text"
+                    placeholder="Filter archives..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                </div>
+                <div className="flex border border-cyan-500/30 rounded-lg p-0.5 bg-[#0a0f1d]/80">
+                  <button
+                    onClick={() => setViewMode("grid")}
+                    className={`p-1.5 rounded-md transition-all ${viewMode === "grid" ? "bg-cyan-500/20 text-cyan-400" : "text-slate-400 hover:text-slate-200"}`}
+                    title="Grid view"
+                  >
+                    <Grid className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode("table")}
+                    className={`p-1.5 rounded-md transition-all ${viewMode === "table" ? "bg-cyan-500/20 text-cyan-400" : "text-slate-400 hover:text-slate-200"}`}
+                    title="Table view"
+                  >
+                    <List className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </div>
 
-            {isLoading ? (
+            {isLoading || statsLoading ? (
               <div className="p-10 text-center font-mono text-muted animate-pulse">
                 Querying workbook data nodes...
               </div>
             ) : error ? (
               <div className="p-10 text-center font-mono text-danger">
                 Failed to load archives from system storage.
+              </div>
+            ) : filteredData.length === 0 ? (
+              <div className="p-10 text-center font-mono text-slate-500 border border-dashed border-cyan-500/10 rounded-lg">
+                No matching workbook configurations found.
+              </div>
+            ) : viewMode === "grid" ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {filteredData.map((wb: any) => {
+                  const stats = workbookStats[wb.id] || { sheetsCount: 0, rowsCount: 0, lastModified: wb.updated_at || wb.created_at };
+                  return (
+                    <div
+                      key={wb.id}
+                      className="group relative bg-[#090e1a]/85 backdrop-blur border border-cyan-500/20 hover:border-cyan-500/40 rounded-xl p-5 transition-all duration-300 hover:shadow-[0_0_20px_rgba(0,229,255,0.08)] flex flex-col justify-between h-48 overflow-hidden"
+                    >
+                      {/* Scanning Line */}
+                      <div className="absolute inset-x-0 bottom-0 h-[1px] bg-gradient-to-r from-transparent via-cyan-500/35 to-transparent scale-x-0 group-hover:scale-x-100 transition-transform duration-500" />
+                      
+                      {/* Top corners */}
+                      <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-primary/40 group-hover:border-primary/80 transition-colors" />
+                      <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-primary/40 group-hover:border-primary/80 transition-colors" />
+                      
+                      <div>
+                        <div className="flex items-start justify-between">
+                          <h3 className="font-mono font-bold text-sm text-cyan-400 group-hover:text-cyan-300 transition-colors line-clamp-1 flex items-center gap-1.5 uppercase tracking-wide">
+                            <BookOpen className="w-4 h-4 text-cyan-500/70" />
+                            {wb.name}
+                          </h3>
+                        </div>
+                        
+                        <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] font-mono text-slate-400">
+                          <div className="flex items-center gap-1.5 bg-[#0e1526] px-2 py-1 rounded border border-cyan-500/5">
+                            <Layers className="w-3.5 h-3.5 text-primary/75" />
+                            <span>{stats.sheetsCount} Sheets</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 bg-[#0e1526] px-2 py-1 rounded border border-cyan-500/5">
+                            <span className="text-primary/75 text-xs">⚡</span>
+                            <span>{stats.rowsCount.toLocaleString()} Rows</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Footer Actions */}
+                      <div className="flex items-center justify-between border-t border-cyan-500/10 pt-3 mt-auto">
+                        <span className="text-[9px] font-mono text-slate-500 flex items-center gap-1">
+                          <Clock className="w-3 h-3 text-cyan-400/40" />
+                          {stats.lastModified ? new Date(stats.lastModified).toLocaleDateString() : "-"}
+                        </span>
+                        
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => handleInspectWorkbook(wb.id)}
+                            className="p-1.5 rounded bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 hover:border-cyan-400 text-cyan-400 transition-all"
+                            title="Inspect Sheets"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => openRenameModal(wb.id, wb.name)}
+                            className="p-1.5 rounded bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 hover:border-purple-400 text-purple-400 transition-all"
+                            title="Rename Workbook"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => openAssignModal(wb.id, wb.name)}
+                            className="p-1.5 rounded bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 hover:border-emerald-400 text-emerald-400 transition-all"
+                            title="Assign Workbook"
+                          >
+                            <UserPlus className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => openDeleteModal(wb.id, wb.name)}
+                            className="p-1.5 rounded bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 hover:border-rose-400 text-rose-400 transition-all"
+                            title="Delete Workbook"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <CyberTable
