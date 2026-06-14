@@ -19,7 +19,8 @@ import {
   HardDrive,
   ChevronLeft,
   ChevronRight,
-  X
+  X,
+  LogOut
 } from "lucide-react";
 
 export const MainLayout: React.FC = () => {
