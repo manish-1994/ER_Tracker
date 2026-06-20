@@ -4,39 +4,273 @@
 @tailwind utilities;
 /* stylelint-enable at-rule-no-unknown */
 
-/* Custom styles for the cyber‑punk theme */
+/* ============================================
+   COMPLETE DESIGN TOKEN SYSTEM
+   Every color in the app derives from --bg, --surface, etc.
+   ThemeContext sets these on :root via applyCssVariables().
+   ============================================ */
+:root {
+  /* Core palette */
+  --primary: #ABE7B2;
+  --secondary: #93BFC7;
+  --accent: #CBF3BB;
+
+  /* Backgrounds */
+  --background: #ECF4E8;
+  --surface: #FFFFFF;
+  --surface-elevated: #F8FAFC;
+  --card-background: #FFFFFF;
+  --modal-background: #FFFFFF;
+  --sidebar-background: #FFFFFF;
+  --header-background: #FFFFFF;
+
+  /* Text */
+  --text: #1A1A2E;
+  --text-secondary: #4A5568;
+  --text-muted: #94A3B8;
+
+  /* Borders */
+  --border: #E2E8F0;
+  --border-strong: #93BFC7;
+
+  /* Semantic */
+  --success: #4ADE80;
+  --warning: #FBBF24;
+  --danger: #F87171;
+  --info: #7FAED8;
+
+  /* Interactive */
+  --button-primary: #ABE7B2;
+  --button-primary-hover: #CBF3BB;
+  --button-secondary: transparent;
+  --button-secondary-hover: #E2E8F0;
+  --hover-bg: #F1F5F9;
+  --selected-bg: #E2E8F0;
+
+  /* Effects */
+  --shadow-color: rgba(0,0,0,0.08);
+}
+
+/* ============================================
+   APPLY VARIABLES TO BODY
+   ============================================ */
 body {
-  @apply bg-cyberBg text-text font-sans antialiased;
-  background-image: 
-    linear-gradient(rgba(0, 229, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 229, 255, 0.03) 1px, transparent 1px);
-  background-size: 40px 40px;
-  background-position: center;
+  @apply bg-[var(--background)] text-[var(--text)] font-sans antialiased;
 }
 
-/* Cyberpunk utility classes */
-.neon-glow-primary {
-  box-shadow: 0 0 10px var(--color-primary-shadow, rgba(0, 229, 255, 0.3)), inset 0 0 10px var(--color-primary-inset, rgba(0, 229, 255, 0.1));
+/* ============================================
+   CARD STYLE CLASSES
+   Toggle via data-card-style attribute on <html>
+   ============================================ */
+html[data-card-style="flat"] .card-theme {
+  box-shadow: none !important;
+  border: 1px solid var(--border);
 }
 
-.neon-glow-primary-hover:hover {
-  box-shadow: 0 0 20px var(--color-primary-shadow-hover, rgba(0, 229, 255, 0.6)), inset 0 0 15px var(--color-primary-inset-hover, rgba(0, 229, 255, 0.2));
+html[data-card-style="elevated"] .card-theme {
+  box-shadow: 0 2px 8px var(--shadow-color), 0 1px 3px rgba(0,0,0,0.04);
+  border: 1px solid transparent;
 }
 
-.neon-glow-secondary {
-  box-shadow: 0 0 10px var(--color-secondary-shadow, rgba(139, 92, 246, 0.3)), inset 0 0 10px var(--color-secondary-inset, rgba(139, 92, 246, 0.1));
+html[data-card-style="glassmorphism"] .card-theme {
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 16px var(--shadow-color);
 }
 
-.neon-glow-secondary-hover:hover {
-  box-shadow: 0 0 20px var(--color-secondary-shadow-hover, rgba(139, 92, 246, 0.6)), inset 0 0 15px var(--color-secondary-inset-hover, rgba(139, 92, 246, 0.2));
+/* ============================================
+   BORDER STYLE CLASSES
+   Toggle via data-border-style attribute on <html>
+   ============================================ */
+html[data-border-style="sharp"] .card-theme,
+html[data-border-style="sharp"] .btn-theme,
+html[data-border-style="sharp"] .input-theme {
+  border-radius: 0 !important;
 }
 
-.neon-text-primary {
-  text-shadow: 0 0 8px rgba(0, 229, 255, 0.6);
+html[data-border-style="rounded"] .card-theme,
+html[data-border-style="rounded"] .btn-theme,
+html[data-border-style="rounded"] .input-theme {
+  border-radius: 8px;
 }
 
-.neon-text-secondary {
-  text-shadow: 0 0 8px rgba(139, 92, 246, 0.6);
+html[data-border-style="pill"] .card-theme,
+html[data-border-style="pill"] .btn-theme {
+  border-radius: 9999px !important;
+}
+
+/* ============================================
+   DENSITY CLASSES
+   Toggle via data-density attribute on <html>
+   ============================================ */
+html[data-density="compact"] .density-y {
+  @apply py-1.5 !important;
+}
+
+html[data-density="compact"] .density-x {
+  @apply px-2 !important;
+}
+
+html[data-density="normal"] .density-y {
+  @apply py-3 !important;
+}
+
+html[data-density="normal"] .density-x {
+  @apply px-4 !important;
+}
+
+html[data-density="spacious"] .density-y {
+  @apply py-5 !important;
+}
+
+html[data-density="spacious"] .density-x {
+  @apply px-6 !important;
+}
+
+/* ============================================
+   THEMED UTILITY CLASSES
+   Use these instead of hardcoded Tailwind colors.
+   ============================================ */
+.bg-theme-surface { background: var(--surface); }
+.bg-theme-surface-elevated { background: var(--surface-elevated); }
+.bg-theme-card { background: var(--card-background); }
+.bg-theme-modal { background: var(--modal-background); }
+.bg-theme-sidebar { background: var(--sidebar-background); }
+.bg-theme-header { background: var(--header-background); }
+.bg-theme-hover { background: var(--hover-bg); }
+.bg-theme-selected { background: var(--selected-bg); }
+.bg-theme-primary { background: var(--primary); }
+.bg-theme-accent { background: var(--accent); }
+.bg-theme-danger { background: var(--danger); }
+.bg-theme-success { background: var(--success); }
+.bg-theme-warning { background: var(--warning); }
+.bg-theme-info { background: var(--info); }
+
+.text-theme { color: var(--text); }
+.text-theme-secondary { color: var(--text-secondary); }
+.text-theme-muted { color: var(--text-muted); }
+.text-theme-primary { color: var(--primary); }
+.text-theme-danger { color: var(--danger); }
+.text-theme-success { color: var(--success); }
+.text-theme-warning { color: var(--warning); }
+
+.border-theme { border-color: var(--border); }
+.border-theme-strong { border-color: var(--border-strong); }
+.border-theme-primary { border-color: var(--primary); }
+.border-theme-danger { border-color: var(--danger); }
+
+.shadow-theme { box-shadow: 0 2px 8px var(--shadow-color); }
+.shadow-theme-lg { box-shadow: 0 10px 40px var(--shadow-color); }
+
+/* Button theming */
+.btn-theme-primary {
+  background: var(--button-primary);
+  color: var(--text);
+  border: 1px solid var(--button-primary);
+}
+.btn-theme-primary:hover {
+  background: var(--button-primary-hover);
+}
+
+.btn-theme-secondary {
+  background: var(--button-secondary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+.btn-theme-secondary:hover {
+  background: var(--button-secondary-hover);
+}
+
+/* ============================================
+   LEGACY: Fluent Glass Panel (kept for backwards compat)
+   ============================================ */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+}
+
+.glass-panel-strong {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 16px var(--shadow-color);
+}
+
+.glass-panel-light {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Fluent Table Styles */
+.table-header-fluent {
+  background: linear-gradient(180deg, var(--primary) 0%, var(--accent) 100%);
+}
+
+.table-row-fluent {
+  background: var(--surface);
+}
+
+.table-row-fluent:nth-child(even) {
+  background: color-mix(in srgb, var(--accent) 4%, var(--surface));
+}
+
+.table-row-fluent:hover {
+  background: var(--hover-bg);
+}
+
+/* Fluent Input Styles */
+.fluent-input {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.fluent-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+/* Fluent Select Styles */
+.fluent-select {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.fluent-select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+/* Fluent Button Styles */
+.btn-fluent-primary {
+  background: var(--button-primary);
+  color: var(--text);
+  border: 1px solid var(--button-primary);
+}
+
+.btn-fluent-primary:hover {
+  background: var(--button-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--primary) 15%, transparent);
+}
+
+.btn-fluent-secondary {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.btn-fluent-secondary:hover {
+  background: var(--hover-bg);
 }
 
 /* Custom Scrollbars */
@@ -46,17 +280,16 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #020617;
+  background: var(--background);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 229, 255, 0.2);
+  background: color-mix(in srgb, var(--secondary) 40%, transparent);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 229, 255, 0.5);
-  box-shadow: 0 0 8px rgba(0, 229, 255, 0.5);
+  background: color-mix(in srgb, var(--secondary) 60%, transparent);
 }
 
 /* Printable PDF Style Calibration */
@@ -75,15 +308,10 @@ body {
     max-width: 100% !important;
     width: 100% !important;
   }
-  .cyber-card, .card, select, input, textarea {
+  .glass-panel, .glass-panel-strong, .glass-panel-light, select, input, textarea {
     border: 1px solid #cccccc !important;
     background: transparent !important;
     box-shadow: none !important;
-    color: #000000 !important;
-    text-shadow: none !important;
-  }
-  .neon-text-primary, .neon-text-secondary {
-    text-shadow: none !important;
     color: #000000 !important;
   }
   table, tr, td, th {

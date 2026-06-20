@@ -16,10 +16,12 @@ export interface WorkspaceAssignment {
 
 export interface WorkspaceNote {
   id: string;
-  user_id: string;
-  assignment_id?: string;
-  title: string;
-  content: string;
+  created_by: number;
+  note: string;
+  workbook_id?: number;
+  sheet_id?: number;
+  record_id?: string;
+  is_private?: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -150,16 +152,12 @@ export const unassignWorkbook = async (assignmentId: string): Promise<void> => {
 
 export const createWorkspaceNote = async (
   userId: string,
-  assignmentId: string | undefined,
-  title: string,
-  content: string
+  noteText: string
 ): Promise<WorkspaceNote> => {
   const payload: any = {
-    user_id: parseInt(userId),
-    title,
-    content,
+    created_by: parseInt(userId),
+    note: noteText,
   };
-  if (assignmentId) payload.assignment_id = parseInt(assignmentId);
 
   const { data, error } = await supabase
     .from("workspace_notes")
@@ -179,7 +177,7 @@ export const getWorkspaceNotes = async (userId: string): Promise<WorkspaceNote[]
     const { data, error } = await supabase
       .from("workspace_notes")
       .select("*")
-      .eq("user_id", intUserId)
+      .eq("created_by", intUserId)
       .order("updated_at", { ascending: false });
 
     if (error) return [];
@@ -242,18 +240,14 @@ export const checkWorkspacePermission = async (
 
 export interface RecordNote {
   id: string;
-  user_id: string;
-  workbook_id?: string;
-  sheet_id?: string;
-  assignment_id?: string;
+  created_by: number;
+  workbook_id?: number;
+  sheet_id?: number;
   record_id: string;
   is_private: boolean;
-  content: string;
+  note: string;
   created_at: string;
   updated_at: string;
-  users?: {
-    username: string;
-  };
 }
 
 export const getRecordNotes = async (
@@ -267,15 +261,15 @@ export const getRecordNotes = async (
 
   let query = supabase
     .from("workspace_notes")
-    .select("*, users(username)")
+    .select("*")
     .eq("sheet_id", intSheetId)
-    .eq("record_id", recordId)
+    .eq("record_id", String(recordId))
     .eq("is_private", isPrivate);
 
   if (isPrivate && userId) {
     const intUserId = parseInt(userId);
     if (!isNaN(intUserId)) {
-      query = query.eq("user_id", intUserId);
+      query = query.eq("created_by", intUserId);
     }
   }
 
@@ -338,35 +332,29 @@ export const getWorksheetPermissions = async (
 };
 
 export const createRecordNote = async (payload: {
-  user_id: string;
-  workbook_id?: string;
-  sheet_id: string;
+  created_by: number;
+  workbook_id?: number;
+  sheet_id: number;
   record_id: string;
   is_private: boolean;
-  content: string;
+  note: string;
 }): Promise<RecordNote | null> => {
-  const intUserId = parseInt(payload.user_id);
-  const intSheetId = parseInt(payload.sheet_id);
-  const intWorkbookId = payload.workbook_id ? parseInt(payload.workbook_id) : null;
-
-  if (isNaN(intUserId) || isNaN(intSheetId)) return null;
-
   const insertData: any = {
-    user_id: intUserId,
-    sheet_id: intSheetId,
-    record_id: payload.record_id,
+    created_by: payload.created_by,
+    sheet_id: payload.sheet_id,
+    record_id: String(payload.record_id),
     is_private: payload.is_private,
-    content: payload.content,
+    note: payload.note,
   };
 
-  if (intWorkbookId) {
-    insertData.workbook_id = intWorkbookId;
+  if (payload.workbook_id) {
+    insertData.workbook_id = payload.workbook_id;
   }
 
   const { data, error } = await supabase
     .from("workspace_notes")
     .insert(insertData)
-    .select("*, users(username)")
+    .select()
     .single();
 
   if (error) throw error;
@@ -376,16 +364,13 @@ export const createRecordNote = async (payload: {
 
 export const updateRecordNote = async (
   noteId: string,
-  content: string
+  noteText: string
 ): Promise<RecordNote | null> => {
-  const intNoteId = parseInt(noteId);
-  if (isNaN(intNoteId)) return null;
-
   const { data, error } = await supabase
     .from("workspace_notes")
-    .update({ content, updated_at: new Date().toISOString() })
-    .eq("id", intNoteId)
-    .select("*, users(username)")
+    .update({ note: noteText, updated_at: new Date().toISOString() })
+    .eq("id", noteId)
+    .select()
     .single();
 
   if (error) throw error;
@@ -394,13 +379,81 @@ export const updateRecordNote = async (
 };
 
 export const deleteRecordNote = async (noteId: string): Promise<void> => {
-  const intNoteId = parseInt(noteId);
-  if (isNaN(intNoteId)) return;
-
   const { error } = await supabase
     .from("workspace_notes")
     .delete()
-    .eq("id", intNoteId);
+    .eq("id", noteId);
 
   if (error) throw error;
+};
+
+export interface WorkspacePublicNote {
+  id: string;
+  workbook_id?: number;
+  workbook_name: string;
+  sheet_id?: number;
+  sheet_name: string;
+  record_id?: string;
+  note: string;
+  created_by: number;
+  author_name: string;
+  is_private: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export const getWorkspacePublicNotes = async (
+  userId: string,
+  isSuperAdmin: boolean
+): Promise<WorkspacePublicNote[]> => {
+  const intUserId = parseInt(userId);
+  if (isNaN(intUserId)) return [];
+
+  let accessibleWorkbookIds: number[];
+  if (isSuperAdmin) {
+    const { data } = await supabase.from("workbooks").select("id");
+    accessibleWorkbookIds = (data || []).map(w => w.id);
+  } else {
+    const { data } = await supabase
+      .from("workspace_assignments")
+      .select("workbook_id")
+      .eq("user_id", intUserId);
+    const ids = [...new Set((data || []).map(a => a.workbook_id))].filter(Boolean);
+    accessibleWorkbookIds = ids;
+  }
+
+  if (accessibleWorkbookIds.length === 0) return [];
+
+  const { data: notes, error } = await supabase
+    .from("workspace_notes")
+    .select("*")
+    .eq("is_private", false)
+    .in("workbook_id", accessibleWorkbookIds)
+    .not("workbook_id", "is", null)
+    .order("updated_at", { ascending: false })
+    .limit(200);
+
+  if (error) throw error;
+  if (!notes || notes.length === 0) return [];
+
+  const workbookIds = [...new Set(notes.map(n => n.workbook_id).filter(Boolean))];
+  const sheetIds = [...new Set(notes.map(n => n.sheet_id).filter(Boolean))];
+  const userIds = [...new Set(notes.map(n => n.created_by).filter(Boolean))];
+
+  const [workbooksRes, sheetsRes, usersRes] = await Promise.all([
+    supabase.from("workbooks").select("id, name").in("id", workbookIds),
+    supabase.from("sheets").select("id, name").in("id", sheetIds),
+    supabase.from("users").select("id, username").in("id", userIds),
+  ]);
+
+  const workbookMap = new Map((workbooksRes.data || []).map(w => [w.id, w.name]));
+  const sheetMap = new Map((sheetsRes.data || []).map(s => [s.id, s.name]));
+  const userMap = new Map((usersRes.data || []).map(u => [u.id, u.username]));
+
+  return notes.map(note => ({
+    ...note,
+    workbook_name: workbookMap.get(note.workbook_id) || `Workbook #${note.workbook_id}`,
+    sheet_name: sheetMap.get(note.sheet_id) || `Sheet #${note.sheet_id}`,
+    author_name: userMap.get(note.created_by) || `User #${note.created_by}`,
+  }));
 };

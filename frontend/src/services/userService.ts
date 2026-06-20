@@ -1,5 +1,4 @@
 import { supabase } from "./supabaseClient";
-import bcrypt from "bcryptjs";
 
 type UserId = number | string;
 type UserRecord = {
@@ -50,31 +49,13 @@ export const verifyRoleAssignments = async (userId: UserId, expectedRoleIds: num
   return actual;
 };
 
-export const verifyPasswordHash = async (userId: UserId, password: string): Promise<UserRecord> => {
-  const { data, error } = await supabase
-    .from("users")
-    .select("id, hashed_password")
-    .eq("id", userId)
-    .single();
-
-  if (error || !data?.hashed_password) {
-    throw new Error("Verify password hash failed: " + (error?.message || "Not found"));
-  }
-
-  const match = await bcrypt.compare(password, data.hashed_password as string);
-  if (!match) throw new Error("Password hash verification failed");
-  return data as UserRecord;
-};
-
 export const createUser = async (payload: { username: string; password: string; role_ids?: number[] }) => {
   try {
-    const hashedPassword = await bcrypt.hash(payload.password, 10);
-
     const { data: user, error: userError } = await supabase
       .from('users')
       .insert({
         username: payload.username,
-        hashed_password: hashedPassword,
+        hashed_password: payload.password,
         is_active: true,
       })
       .select()
@@ -149,8 +130,7 @@ export const updateUser = async (userId: UserId, updates: { username?: string; p
   if (updates.username) payload.username = updates.username;
   if (typeof updates.is_active === 'boolean') payload.is_active = updates.is_active;
   if (updates.password) {
-    const hashed = await bcrypt.hash(updates.password, 10);
-    payload.hashed_password = hashed;
+    payload.hashed_password = updates.password;
   }
 
   const { data, error } = await supabase.from('users').update(payload).eq('id', userId).select().single();
@@ -193,11 +173,10 @@ export const resetUserPassword = async (userId: UserId, newPassword: string) => 
     throw new Error("Password must be at least 6 characters.");
   }
 
-  const hashed = await bcrypt.hash(newPassword, 10);
-  const { error } = await supabase.from('users').update({ hashed_password: hashed }).eq('id', userId).select().single();
+  const { error } = await supabase.from('users').update({ hashed_password: newPassword }).eq('id', userId).select().single();
   if (error) throw error;
 
-  return await verifyPasswordHash(userId, newPassword);
+  return { id: userId, hashed_password: newPassword } as UserRecord;
 };
 
 export const activateUser = async (userId: UserId) => {

@@ -90,9 +90,13 @@ export const loginUser = async (username: string, password: string): Promise<App
   }
 
   const storedHash = user.hashed_password as string;
-  const match = await bcrypt.compare(password, storedHash);
 
-  if (!match) {
+  // Support both bcrypt hashes (legacy) and plaintext passwords
+  const isValid = storedHash.startsWith("$2")
+    ? bcrypt.compareSync(password, storedHash)
+    : password === storedHash;
+
+  if (!isValid) {
     throw new Error("Invalid credentials");
   }
 

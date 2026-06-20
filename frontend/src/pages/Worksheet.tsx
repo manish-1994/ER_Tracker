@@ -33,9 +33,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { exportToExcel, exportToCSV, exportToPDF } from "../utils/exportUtils";
 
 const Worksheet: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const params = useParams<{ id: string; workbookId: string; sheetId: string; recordId: string }>();
+  const id = params.sheetId || params.id;
+  const targetRecordId = params.recordId;
   const { appUser } = useAuth();
   const toast = useToast();
+  const [autoOpenAttempted, setAutoOpenAttempted] = useState(false);
 
   // ----- RBAC -----
   const [role, setRole] = useState<string>('Viewer'); // default fallback
@@ -350,6 +353,24 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
   useEffect(() => {
     if (rows) setLocalRows(rows);
   }, [rows]);
+
+  // Deep-link auto-open: navigate to record + notes tab
+  useEffect(() => {
+    if (!targetRecordId || autoOpenAttempted || isRowsLoading) return;
+    const source = localRows.length > 0 ? localRows : (rows || []);
+    const found = source.find(r => String(r.id) === targetRecordId);
+    if (found) {
+      setSelectedRecord(found);
+      setDetailEditValues(found.data || {});
+      setDetailOpen(true);
+      setDrawerTab("notes");
+      fetchRecordNotesAndTimeline(found.id);
+      setAutoOpenAttempted(true);
+    } else if (source.length > 0) {
+      toast.error("Record no longer exists");
+      setAutoOpenAttempted(true);
+    }
+  }, [targetRecordId, localRows, rows, autoOpenAttempted, isRowsLoading]);
 
   // Undo countdown timer effect
   useEffect(() => {
@@ -771,12 +792,12 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
       const { data: sheet } = await supabase.from("sheets").select("workbook_id").eq("id", parseInt(id)).single();
       
       const note = await createRecordNote({
-        user_id: String(appUser.id),
-        workbook_id: sheet?.workbook_id ? String(sheet.workbook_id) : undefined,
-        sheet_id: id,
-        record_id: selectedRecord.id,
+        created_by: Number(appUser.id),
+        workbook_id: sheet?.workbook_id ? Number(sheet.workbook_id) : undefined,
+        sheet_id: Number(id),
+        record_id: String(selectedRecord.id),
         is_private: isPrivate,
-        content: content
+        note: content
       });
 
       if (note) {
@@ -821,8 +842,8 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
         fetchRecordNotesAndTimeline(selectedRecord.id);
       }
       toast.success("Note updated");
-} catch {
-      toast.error("Failed to commit column header update.");
+    } catch {
+      toast.error("Failed to update note");
     }
   };
 
@@ -1070,7 +1091,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
         new_value: JSON.stringify(lastDeletedRows.map(r => r.data)),
       });
 
-      toast.success("Deletion undone. Rows restored.");
+      toast.success("Restore successful. Rows recovered.");
       setLastDeletedRows(null);
       setShowUndo(false);
       refetchRows();
@@ -1221,7 +1242,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
                   return next;
                 });
               }}
-              className="accent-primary w-4 h-4 cursor-pointer rounded border-cyan-500/30 bg-black/40 text-primary focus:ring-primary focus:ring-offset-0"
+              className="accent-primary w-4 h-4 cursor-pointer rounded border-accent/30 bg-black/40 text-primary focus:ring-primary focus:ring-offset-0"
             />
           </div>
         );
@@ -1240,7 +1261,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
                 return next;
               });
             }}
-            className="accent-primary w-4 h-4 cursor-pointer rounded border-cyan-500/30 bg-black/40 text-primary focus:ring-primary focus:ring-offset-0"
+            className="accent-primary w-4 h-4 cursor-pointer rounded border-accent/30 bg-black/40 text-primary focus:ring-primary focus:ring-offset-0"
           />
         </div>
       )
@@ -1260,7 +1281,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
               <input
                 type="text"
                 value={headerInput}
-                className="w-full px-1.5 py-0.5 bg-[#0F172A] text-[#E2E8F0] border border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-400 font-mono text-xs rounded"
+                className="w-full px-1.5 py-0.5 bg-theme-card text-theme border border-accent focus:outline-none focus:ring-1 focus:ring-accent font-mono text-xs rounded"
                 onChange={(e) => setHeaderInput(e.target.value)}
                 onBlur={() => saveHeader(key)}
                 onKeyDown={(e) => {
@@ -1293,7 +1314,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
                         e.stopPropagation();
                         startHeaderEdit(key, displayHeader);
                       }}
-                      className="text-slate-500 hover:text-primary cursor-pointer text-[10px]"
+                      className="text-theme-muted hover:text-primary cursor-pointer text-[10px]"
                       title="Rename"
                     >
                       ✏️
@@ -1303,7 +1324,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
                         e.stopPropagation();
                         toggleColumnHidden(key, col.hidden || false);
                       }}
-                      className="text-slate-500 hover:text-primary cursor-pointer text-[10px]"
+                      className="text-theme-muted hover:text-primary cursor-pointer text-[10px]"
                       title="Hide"
                     >
                       👁️
@@ -1313,7 +1334,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
                         e.stopPropagation();
                         moveColumnLeft(key, index);
                       }}
-                      className="text-slate-500 hover:text-primary cursor-pointer text-[10px]"
+                      className="text-theme-muted hover:text-primary cursor-pointer text-[10px]"
                       title="Move Left"
                       style={{ opacity: index === 0 ? 0.3 : 1, pointerEvents: index === 0 ? 'none' : 'auto' }}
                     >
@@ -1324,7 +1345,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
                         e.stopPropagation();
                         moveColumnRight(key, index, visibleCols.length);
                       }}
-                      className="text-slate-500 hover:text-primary cursor-pointer text-[10px]"
+                      className="text-theme-muted hover:text-primary cursor-pointer text-[10px]"
                       title="Move Right"
                       style={{ opacity: index === visibleCols.length - 1 ? 0.3 : 1, pointerEvents: index === visibleCols.length - 1 ? 'none' : 'auto' }}
                     >
@@ -1340,7 +1361,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
                   value={columnFilters[key] || ""}
                   onChange={(e) => setColumnFilters(prev => ({ ...prev, [key]: e.target.value }))}
                   onClick={(e) => e.stopPropagation()}
-                  className="w-full px-1.5 py-0.5 bg-[#0a0f1d] text-[#E2E8F0] border border-cyan-500/20 focus:border-cyan-400 focus:outline-none font-mono text-[9px] rounded text-left"
+                  className="w-full px-1.5 py-0.5 bg-theme-card text-theme border border-accent/20 focus:border-accent focus:outline-none font-mono text-[9px] rounded text-left"
                 />
               )}
             </div>
@@ -1358,7 +1379,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
               return (
                 <select
                   defaultValue={cellValue}
-                  className="w-full px-2 py-1 bg-[#0a0f1d] text-[#E2E8F0] border border-cyan-500 focus:outline-none font-mono text-xs rounded"
+                  className="w-full px-2 py-1 bg-theme-card text-theme border border-accent focus:outline-none font-mono text-xs rounded"
                   onBlur={(e) => commitEdit(row.id, key, e.target.value)}
                   onChange={(e) => commitEdit(row.id, key, e.target.value)}
                   autoFocus
@@ -1374,7 +1395,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
               return (
                 <select
                   defaultValue={String(cellValue)}
-                  className="w-full px-2 py-1 bg-[#0a0f1d] text-[#E2E8F0] border border-cyan-500 focus:outline-none font-mono text-xs rounded"
+                  className="w-full px-2 py-1 bg-theme-card text-theme border border-accent focus:outline-none font-mono text-xs rounded"
                   onBlur={(e) => commitEdit(row.id, key, e.target.value)}
                   onChange={(e) => commitEdit(row.id, key, e.target.value)}
                   autoFocus
@@ -1390,7 +1411,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
                 <input
                   type="date"
                   defaultValue={cellValue}
-                  className="w-full px-2 py-1 bg-[#0a0f1d] text-[#E2E8F0] border border-cyan-500 focus:outline-none font-mono text-xs rounded"
+                  className="w-full px-2 py-1 bg-theme-card text-theme border border-accent focus:outline-none font-mono text-xs rounded"
                   onBlur={(e) => commitEdit(row.id, key, e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") (e.target as HTMLInputElement).blur();
@@ -1405,7 +1426,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
                 <input
                   type="datetime-local"
                   defaultValue={cellValue}
-                  className="w-full px-2 py-1 bg-[#0a0f1d] text-[#E2E8F0] border border-cyan-500 focus:outline-none font-mono text-xs rounded"
+                  className="w-full px-2 py-1 bg-theme-card text-theme border border-accent focus:outline-none font-mono text-xs rounded"
                   onBlur={(e) => commitEdit(row.id, key, e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") (e.target as HTMLInputElement).blur();
@@ -1420,7 +1441,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
                 <input
                   type="number"
                   defaultValue={cellValue}
-                  className="w-full px-2 py-1 bg-[#0a0f1d] text-[#E2E8F0] border border-cyan-500 focus:outline-none font-mono text-xs rounded"
+                  className="w-full px-2 py-1 bg-theme-card text-theme border border-accent focus:outline-none font-mono text-xs rounded"
                   onBlur={(e) => commitEdit(row.id, key, e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") (e.target as HTMLInputElement).blur();
@@ -1434,7 +1455,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
               <input
                 type="text"
                 defaultValue={cellValue}
-                className="w-full px-2 py-1 bg-[#0a0f1d] text-[#E2E8F0] border border-cyan-500 focus:outline-none focus:shadow-[0_0_10px_rgba(0,229,255,0.15)] font-mono text-xs rounded"
+                className="w-full px-2 py-1 bg-theme-card text-theme border border-accent focus:outline-none font-mono text-xs rounded"
                 onBlur={(e) => commitEdit(row.id, key, e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
@@ -1449,7 +1470,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
           }
           return (
             <div
-              className="cursor-pointer hover:bg-[rgba(0,229,255,0.06)] min-h-[24px] px-2 py-1 flex items-center justify-start font-mono text-xs tracking-wide transition-colors"
+              className="cursor-pointer hover:bg-accent/5 min-h-[24px] px-2 py-1 flex items-center justify-start font-mono text-xs tracking-wide transition-colors"
               onClick={() => startEdit(row.id, key)}
               title="Double click to edit cell value"
             >
@@ -1477,7 +1498,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
             <div className="flex justify-center">
               <button
                 onClick={() => deleteRowHandler(row.id)}
-                className="text-[9px] font-bold tracking-widest font-mono uppercase bg-rose-950/30 border border-[#FF4D6D]/30 text-[#FF4D6D] hover:bg-[#FF4D6D]/15 px-2 py-0.5 rounded transition"
+                className="text-[9px] font-bold tracking-widest font-mono uppercase bg-danger/30 border border-danger/30 text-danger hover:bg-danger/15 px-2 py-0.5 rounded transition"
               >
                 Delete
               </button>
@@ -1495,19 +1516,19 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
         <PageHeader title={id ? getCleanSheetName(id, "") : ""} subtitle="Worksheet Data View" />
         
         {/* Skeleton Header Controls */}
-        <div className="bg-[#050b14]/50 border border-cyan-500/10 rounded-xl p-5 animate-pulse flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="w-48 h-8 bg-slate-800 rounded-md"></div>
-          <div className="w-96 h-8 bg-slate-800 rounded-md"></div>
+        <div className="bg-theme-card/50 border border-accent/10 rounded-xl p-5 animate-pulse flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="w-48 h-8 bg-theme-surface rounded-md"></div>
+          <div className="w-96 h-8 bg-theme-surface rounded-md"></div>
         </div>
 
         {/* Skeleton Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="bg-[#090e1a]/85 border border-cyan-500/10 rounded-xl p-6 space-y-4 animate-pulse h-40">
-              <div className="w-1/3 h-3 bg-slate-800 rounded"></div>
-              <div className="w-3/4 h-5 bg-slate-800 rounded"></div>
-              <div className="w-1/2 h-3 bg-slate-800 rounded"></div>
-              <div className="w-full h-4 bg-slate-800 rounded pt-2"></div>
+            <div key={i} className="bg-theme-card/85 border border-accent/10 rounded-xl p-6 space-y-4 animate-pulse h-40">
+              <div className="w-1/3 h-3 bg-theme-surface rounded"></div>
+              <div className="w-3/4 h-5 bg-theme-surface rounded"></div>
+              <div className="w-1/2 h-3 bg-theme-surface rounded"></div>
+              <div className="w-full h-4 bg-theme-surface rounded pt-2"></div>
             </div>
           ))}
         </div>
@@ -1520,8 +1541,8 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
       <div className="space-y-6">
         <PageHeader title={id ? getCleanSheetName(id, "") : ""} subtitle="Worksheet Data View" />
         <CyberCard className="p-8 text-center border-danger/40">
-          <p className="text-danger font-mono mb-4">[CRITICAL ERROR]: Unable to synchronize worksheet nodes.</p>
-          <p className="text-slate-400 text-xs mb-2">(Cols Error: {isColsError ? "YES" : "NO"} / Rows Error: {isRowsError ? "YES" : "NO"})</p>
+          <p className="text-danger font-sans mb-4">Error: Unable to load worksheet data.</p>
+          <p className="text-theme-muted text-xs mb-2">(Cols Error: {isColsError ? "YES" : "NO"} / Rows Error: {isRowsError ? "YES" : "NO"})</p>
           <CyberButton onClick={refetchAll}>Retry Link</CyberButton>
         </CyberCard>
       </div>
@@ -1534,10 +1555,10 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
       
       {/* Bulk actions bar */}
       {selectedIds.size > 0 && (
-        <CyberCard className="flex items-center justify-between gap-4 border-rose-500/30 bg-rose-950/10 shadow-[0_0_15px_rgba(239,68,68,0.05)]">
-          <div className="flex items-center gap-2 font-mono text-xs text-rose-400">
+        <CyberCard className="flex items-center justify-between gap-4 border-danger/30 bg-danger/10">
+          <div className="flex items-center gap-2 font-sans text-xs text-danger">
             <span>☣</span>
-            <span>{selectedIds.size} ROW(S) SELECTED FOR DE-ORBITAL BOMBARDMENT</span>
+            <span>{selectedIds.size} ROW(S) SELECTED</span>
           </div>
           <div className="flex gap-2">
             <CyberButton
@@ -1549,7 +1570,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
             </CyberButton>
             <button
               onClick={handleBulkDelete}
-              className="px-4 py-1.5 font-mono text-xs font-bold uppercase tracking-widest bg-rose-950/30 hover:bg-rose-900/20 border border-rose-500/30 hover:border-rose-500 text-rose-400 shadow-[0_0_8px_rgba(239,68,68,0.1)] rounded-lg transition-all"
+              className="px-4 py-1.5 font-sans text-xs font-bold uppercase tracking-widest bg-danger/30 hover:bg-danger/20 border border-danger/30 hover:border-danger text-danger rounded-lg transition-all"
             >
               BULK DELETE
             </button>
@@ -1558,8 +1579,8 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
       )}
 
       {/* Control Actions Header Deck */}
-      <div className="sticky top-16 z-20 bg-[#050b14]/95 backdrop-blur border border-cyan-500/20 rounded-xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.6)] flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center font-mono text-xs text-primary/80 gap-3 w-full lg:w-auto">
+      <div className="sticky top-16 z-20 bg-theme-card/95 backdrop-blur border border-accent/20 rounded-xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.6)] flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center font-sans text-xs text-primary/80 gap-3 w-full lg:w-auto">
           <div className="flex items-center space-x-3 flex-shrink-0">
             <span>ACCESS LEVEL:</span>
             <CyberBadge variant={role === 'Viewer' ? 'secondary' : 'primary'}>
@@ -1567,7 +1588,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
             </CyberBadge>
             <span>|</span>
             <span>ROWS:</span>
-            <span className="text-[#00FF9D] font-bold">{localRows.length}</span>
+            <span className="text-theme-success font-bold">{localRows.length}</span>
           </div>
           <div className="w-full sm:w-60">
             <CyberInput
@@ -1606,24 +1627,24 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
             <CyberButton onClick={openAuditModal} variant="secondary" className="w-full sm:w-auto">
               Audit Trail Logs
             </CyberButton>
-            <div className="flex gap-1 border-t sm:border-t-0 sm:border-l border-cyan-500/20 pt-2 sm:pt-0 sm:pl-2 w-full sm:w-auto justify-center sm:justify-start no-print">
+            <div className="flex gap-1 border-t sm:border-t-0 sm:border-l border-accent/20 pt-2 sm:pt-0 sm:pl-2 w-full sm:w-auto justify-center sm:justify-start no-print">
               <button
                 onClick={handleExportExcel}
-                className="px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 hover:border-cyan-400 text-cyan-400 rounded transition-all flex-1 sm:flex-none text-center"
+                className="px-2.5 py-1.5 font-sans text-[10px] font-bold uppercase tracking-wider bg-accent/10 hover:bg-[var(--border-strong)]/20 border border-accent/30 hover:border-accent text-accent rounded transition-all flex-1 sm:flex-none text-center"
                 title="Export to Excel spreadsheet"
               >
                 XLSX
               </button>
               <button
                 onClick={handleExportCSV}
-                className="px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 hover:border-cyan-400 text-cyan-400 rounded transition-all flex-1 sm:flex-none text-center"
+                className="px-2.5 py-1.5 font-sans text-[10px] font-bold uppercase tracking-wider bg-accent/10 hover:bg-[var(--border-strong)]/20 border border-accent/30 hover:border-accent text-accent rounded transition-all flex-1 sm:flex-none text-center"
                 title="Export to CSV values"
               >
                 CSV
               </button>
               <button
                 onClick={handleExportPDF}
-                className="px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 hover:border-cyan-400 text-cyan-400 rounded transition-all flex-1 sm:flex-none text-center"
+                className="px-2.5 py-1.5 font-sans text-[10px] font-bold uppercase tracking-wider bg-accent/10 hover:bg-[var(--border-strong)]/20 border border-accent/30 hover:border-accent text-accent rounded transition-all flex-1 sm:flex-none text-center"
                 title="Export print PDF"
               >
                 PDF
@@ -1638,10 +1659,10 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
         {["All", "My Records", "Pending", "Completed", "High Priority", "Recently Updated"].map((view) => (
           <button
             key={view}
-            className={`px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider rounded border transition-all ${
+            className={`px-3 py-1 font-sans text-[10px] font-bold uppercase tracking-wider rounded border transition-all ${
               smartView === view
                 ? "bg-primary/20 border-primary text-primary"
-                : "bg-cyberCard/50 border-cyan-500/20 text-slate-400 hover:text-primary hover:border-primary/40"
+                : "bg-theme-card/50 border-accent/20 text-theme-muted hover:text-primary hover:border-primary/40"
             }`}
             onClick={() => setSmartView(view)}
           >
@@ -1652,11 +1673,11 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
       
       {/* View Mode Toggle */}
       <div className="flex justify-end mb-4">
-        <div className="flex items-center gap-2 font-mono text-[10px]">
-          <span className="text-slate-500">View:</span>
+        <div className="flex items-center gap-2 font-sans text-[10px]">
+          <span className="text-theme-muted">View:</span>
           <button
             className={`px-3 py-1 rounded border transition-all ${
-              viewMode === "card" ? "bg-primary/20 border-primary text-primary" : "border-cyan-500/20 text-slate-400"
+              viewMode === "card" ? "bg-primary/20 border-primary text-primary" : "border-accent/20 text-theme-muted"
             }`}
             onClick={() => setViewMode("card")}
           >
@@ -1664,7 +1685,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
           </button>
           <button
             className={`px-3 py-1 rounded border transition-all ${
-              viewMode === "table" ? "bg-primary/20 border-primary text-primary" : "border-cyan-500/20 text-slate-400"
+              viewMode === "table" ? "bg-primary/20 border-primary text-primary" : "border-accent/20 text-theme-muted"
             }`}
             onClick={() => setViewMode("table")}
           >
@@ -1675,19 +1696,16 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
       
       {/* Main View - Card or Table */}
       {localRows.length === 0 ? (
-        <div className="p-12 text-center border border-dashed border-cyan-500/20 bg-[#090e1a]/50 rounded-xl max-w-lg mx-auto space-y-4 my-8 relative overflow-hidden group">
-          <div className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-cyan-500/40" />
-          <div className="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 border-cyan-500/40" />
-          
-          <div className="text-4xl text-cyan-500/60 animate-bounce">📁</div>
-          <h3 className="font-mono text-sm font-bold text-cyan-400 uppercase tracking-widest">No Operational Records Detected</h3>
-          <p className="font-mono text-[11px] text-slate-400 max-w-sm mx-auto leading-relaxed">
-            This workspace segment contains no telemetry records. Add a new row entry manually or verify ingestion logs.
+        <div className="p-12 text-center border border-dashed border-accent/20 bg-theme-card/50 rounded-xl max-w-lg mx-auto space-y-4 my-8 relative overflow-hidden group">
+          <div className="text-4xl text-accent/60">📁</div>
+          <h3 className="font-sans text-sm font-bold text-accent uppercase tracking-widest">No Records Found</h3>
+          <p className="font-mono text-[11px] text-theme-muted max-w-sm mx-auto leading-relaxed">
+            No records match the current view or filters. Add a new row or adjust your filters.
           </p>
           {canAdd && (
             <div className="pt-2">
               <CyberButton onClick={openAddModal} variant="primary" size="sm">
-                + Append First Entry
+                + Add First Entry
               </CyberButton>
             </div>
           )}
@@ -1703,7 +1721,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
               const statusVal = String(data.status || data.state || "").toLowerCase();
               const priorityVal = String(data.priority || data.urgency || "").toLowerCase();
               
-              let cardBorderClass = "border-cyan-500/20";
+              let cardBorderClass = "border-accent/20";
               let statusBadge = null;
               
               if (statusVal.includes("complete") || statusVal.includes("done")) {
@@ -1711,27 +1729,25 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
               } else if (statusVal.includes("progress") || statusVal.includes("active")) {
                 statusBadge = <span className="text-[9px] font-mono px-2 py-0.5 bg-primary/10 border border-primary/30 text-primary rounded-full uppercase tracking-wider font-bold">In Progress</span>;
               } else if (statusVal.includes("pending") || statusVal.includes("queue")) {
-                statusBadge = <span className="text-[9px] font-mono px-2 py-0.5 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-full uppercase tracking-wider font-bold">Pending</span>;
+                statusBadge = <span className="text-[9px] font-mono px-2 py-0.5 bg-warning/10 border border-warning/30 text-warning rounded-full uppercase tracking-wider font-bold">Pending</span>;
               }
               
               if (priorityVal.includes("high") || priorityVal.includes("urgent")) {
-                cardBorderClass = "border-rose-500/30 hover:shadow-[0_0_20px_rgba(255,77,109,0.1)]";
+                cardBorderClass = "border-danger/30";
               } else if (priorityVal.includes("medium")) {
-                cardBorderClass = "border-amber-500/20 hover:shadow-[0_0_20px_rgba(255,184,0,0.1)]";
+                cardBorderClass = "border-warning/20";
               }
               
               return (
                 <div 
                   key={row.id} 
-                  className={`group relative bg-[#090e1a]/85 backdrop-blur border ${cardBorderClass} rounded-xl p-5 hover:bg-[#0c1426]/90 transition-all duration-300 cursor-pointer hover:-translate-y-1 hover:border-cyan-500/40 hover:shadow-[0_0_25px_rgba(0,229,255,0.12)] flex flex-col justify-between min-h-[180px] overflow-hidden`}
+                  className={`group relative bg-theme-card/85 backdrop-blur border ${cardBorderClass} rounded-xl p-5 hover:bg-theme-card/90 transition-all duration-300 cursor-pointer hover:-translate-y-1 hover:border-accent/40 flex flex-col justify-between min-h-[180px] overflow-hidden`}
                   onClick={() => openRecordDetail(row)}
                 >
-                  <div className="absolute top-0 left-0 w-1.5 h-1.5 border-t border-l border-cyan-400/40 group-hover:border-cyan-400" />
-                  <div className="absolute bottom-0 right-0 w-1.5 h-1.5 border-b border-r border-cyan-400/40 group-hover:border-cyan-400" />
                   
                   <div className="space-y-3.5 flex-1">
                     <div className="flex justify-between items-start">
-                      <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest">
+                      <span className="text-[9px] font-mono text-theme-muted uppercase tracking-widest">
                         Record ID: #{row.id.substring(0, 8)}
                       </span>
                       {statusBadge}
@@ -1739,23 +1755,23 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
 
                     <div className="space-y-2">
                       {previewFields.map((col: any) => (
-                        <div key={col.name} className="flex justify-between items-center gap-4 text-xs font-mono border-b border-cyan-500/5 pb-1">
-                          <span className="text-slate-500 uppercase tracking-wider text-[9px] font-bold">
+                        <div key={col.name} className="flex justify-between items-center gap-4 text-xs font-mono border-b border-accent/5 pb-1">
+                          <span className="text-theme-muted uppercase tracking-wider text-[9px] font-bold">
                             {col.display_name}
                           </span>
-                          <span className="text-slate-200 truncate max-w-[70%] font-semibold">
-                            {data[col.name] || <span className="text-slate-600 italic">Empty</span>}
+                          <span className="text-theme truncate max-w-[70%] font-semibold">
+                            {data[col.name] || <span className="text-theme-muted italic">Empty</span>}
                           </span>
                         </div>
                       ))}
                     </div>
                   </div>
                   
-                  <div className="pt-3 border-t border-cyan-500/10 flex justify-between items-center mt-3">
-                    <span className="text-[9px] font-mono text-slate-500">
+                  <div className="pt-3 border-t border-accent/10 flex justify-between items-center mt-3">
+                    <span className="text-[9px] font-mono text-theme-muted">
                       {visibleCols.length > 3 ? `+${visibleCols.length - 3} more fields` : "All fields"}
                     </span>
-                    <span className="text-cyan-400 text-[10px] font-mono font-bold uppercase tracking-wider group-hover:text-cyan-300 flex items-center gap-1">
+                    <span className="text-accent text-[10px] font-mono font-bold uppercase tracking-wider group-hover:text-accent flex items-center gap-1">
                       Open Record <span className="transition-transform group-hover:translate-x-1 duration-200">→</span>
                     </span>
                   </div>
@@ -1767,20 +1783,20 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
           <CyberTable 
             columns={columns} 
             data={filteredRows}
-            className="hover:shadow-[0_0_20px_rgba(0,229,255,0.02)] transition-all duration-300" 
+            className="transition-all duration-300" 
           />
         )
       ) : (
-        <div className="p-12 text-center text-muted border border-dashed border-cyan-500/20 rounded-xl font-mono text-sm">
+        <div className="p-12 text-center text-muted border border-dashed border-accent/20 rounded-xl font-mono text-sm">
           No columns defined in schemas. Add columns or ingest new spreadsheet data.
         </div>
       )}
 
       {/* Add Row Modal */}
-      <CyberModal isOpen={isAddOpen} onClose={closeAddModal} title="Append Operator Entry">
-        <form className="space-y-4 font-mono text-xs">
-          <p className="text-slate-400 mb-2 leading-relaxed">
-            Provide row cell inputs for the columns below. Blank values are blocked from database ingestion.
+      <CyberModal isOpen={isAddOpen} onClose={closeAddModal} title="Add New Record">
+        <form className="space-y-4 font-sans text-xs">
+          <p className="text-theme-muted mb-2 leading-relaxed">
+            Fill in the fields below. Required fields are marked with an asterisk.
           </p>
           <div className="max-h-60 overflow-y-auto space-y-3 pr-2">
             {(colsData || []).map((col: any) => {
@@ -1794,7 +1810,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
                     name={col.name}
                     value={formValues[col.name] || ""}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 bg-[#0a0f1d] text-[#E2E8F0] border border-cyan-500/30 focus:border-cyan-400 focus:outline-none font-mono text-xs rounded"
+                    className="w-full px-3 py-2 bg-theme-card text-theme border border-accent/30 focus:border-accent focus:outline-none font-mono text-xs rounded"
                     required={isRequired}
                   >
                     <option value="">-- Select --</option>
@@ -1815,14 +1831,14 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
                   setFormValues(prev => ({ ...prev, [col.name]: newList.join(", ") }));
                 };
                 inputField = (
-                  <div className="flex flex-wrap gap-2 p-2 border border-cyan-500/10 rounded bg-black/30">
+                  <div className="flex flex-wrap gap-2 p-2 border border-accent/10 rounded bg-black/30">
                     {typeInfo.options.map((opt) => (
                       <label key={opt} className="flex items-center gap-1 cursor-pointer hover:text-white">
                         <input
                           type="checkbox"
                           checked={selectedList.includes(opt)}
                           onChange={(e) => handleMultiChange(opt, e.target.checked)}
-                          className="rounded bg-[#0a0f1d] border-cyan-500/30 text-cyan-500 focus:ring-0 focus:ring-offset-0 text-xs"
+                          className="rounded bg-theme-card border-accent/30 text-accent focus:ring-0 focus:ring-offset-0 text-xs"
                         />
                         <span>{opt}</span>
                       </label>
@@ -1835,7 +1851,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
                     name={col.name}
                     value={formValues[col.name] || ""}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 bg-[#0a0f1d] text-[#E2E8F0] border border-cyan-500/30 focus:border-cyan-400 focus:outline-none font-mono text-xs rounded"
+                    className="w-full px-3 py-2 bg-theme-card text-theme border border-accent/30 focus:border-accent focus:outline-none font-mono text-xs rounded"
                     required={isRequired}
                   >
                     <option value="">-- Select --</option>
@@ -1850,7 +1866,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
                     value={formValues[col.name] || ""}
                     onChange={handleInputChange}
                     placeholder={`Enter ${col.display_name}`}
-                    className="w-full px-3 py-2 bg-[#0a0f1d] text-[#E2E8F0] border border-cyan-500/30 focus:border-cyan-400 focus:outline-none font-mono text-xs rounded"
+                    className="w-full px-3 py-2 bg-theme-card text-theme border border-accent/30 focus:border-accent focus:outline-none font-mono text-xs rounded"
                     required={isRequired}
                     rows={3}
                   />
@@ -1879,14 +1895,14 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
               return (
                 <div key={col.name} className="space-y-1">
                   <label className="block font-bold text-primary uppercase tracking-wider text-[10px]">
-                    {col.display_name} {isRequired && <span className="text-rose-500 font-bold">*</span>}
+                    {col.display_name} {isRequired && <span className="text-danger font-bold">*</span>}
                   </label>
                   {inputField}
                 </div>
               );
             })}
           </div>
-          <div className="flex justify-end gap-3 pt-4 border-t border-cyan-500/10">
+          <div className="flex justify-end gap-3 pt-4 border-t border-accent/10">
             <CyberButton type="button" onClick={closeAddModal} variant="secondary">
               Cancel
             </CyberButton>
@@ -1898,14 +1914,14 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
       </CyberModal>
 
       {/* Audit History Modal */}
-      <CyberModal isOpen={isAuditOpen} onClose={closeAuditModal} title={`Audit Trails: ${id}`}>
-        <div className="max-h-96 overflow-y-auto font-mono text-xs">
+      <CyberModal isOpen={isAuditOpen} onClose={closeAuditModal} title={`Audit Trail: ${id}`}>
+        <div className="max-h-96 overflow-y-auto font-sans text-xs">
           {auditLogs.length === 0 ? (
-            <p className="text-center text-cyan-400 animate-pulse py-8">No audit logs logged in memory nodes.</p>
+            <p className="text-center text-accent py-8">No audit logs found.</p>
           ) : (
             <table className="w-full text-center border-collapse">
               <thead>
-                <tr className="bg-black/60 text-primary border-b border-cyan-500/10 text-[10px] tracking-wider uppercase font-bold">
+                <tr className="bg-black/60 text-primary border-b border-accent/10 text-[10px] tracking-wider uppercase font-bold">
                   <th className="p-3">Timestamp</th>
                   <th className="p-3">Operator ID</th>
                   <th className="p-3">Operation</th>
@@ -1915,11 +1931,11 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
               </thead>
               <tbody>
                 {auditLogs.slice().reverse().map((log) => (
-                  <tr key={log.id} className="border-b border-cyan-500/5 hover:bg-[#00E5FF]/5 transition-colors">
-                    <td className="p-3 whitespace-nowrap text-[10px] text-slate-500">
+                  <tr key={log.id} className="border-b border-accent/5 hover:bg-accent/5 transition-colors">
+                    <td className="p-3 whitespace-nowrap text-[10px] text-theme-muted">
                       {new Date(log.created_at).toLocaleString()}
                     </td>
-                    <td className="p-3 text-[10px] max-w-[120px] truncate text-slate-400" title={log.user_id}>
+                    <td className="p-3 text-[10px] max-w-[120px] truncate text-theme-muted" title={log.user_id}>
                       {log.user_id}
                     </td>
                     <td className="p-3">
@@ -1927,10 +1943,10 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
                         {log.action.toUpperCase()}
                       </CyberBadge>
                     </td>
-                    <td className="p-3 text-slate-400 max-w-[150px] truncate break-all select-all" title={log.old_value || ''}>
+                    <td className="p-3 text-theme-muted max-w-[150px] truncate break-all select-all" title={log.old_value || ''}>
                       {log.old_value || '-'}
                     </td>
-                    <td className="p-3 text-slate-300 max-w-[150px] truncate break-all select-all" title={log.new_value || ''}>
+                    <td className="p-3 text-theme-secondary max-w-[150px] truncate break-all select-all" title={log.new_value || ''}>
                       {log.new_value || '-'}
                     </td>
                   </tr>
@@ -1939,7 +1955,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
             </table>
           )}
         </div>
-        <div className="flex justify-end pt-4 border-t border-cyan-500/10 mt-4">
+        <div className="flex justify-end pt-4 border-t border-accent/10 mt-4">
           <CyberButton variant="secondary" onClick={closeAuditModal}>
             Close Logs
           </CyberButton>
@@ -1948,9 +1964,9 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
 
 {/* Rename Worksheet Modal */}
       <CyberModal isOpen={isRenameWsOpen} onClose={closeRenameWsModal} title="Rename Worksheet">
-        <div className="space-y-4 font-mono text-xs">
-          <p className="text-slate-400 mb-2 leading-relaxed">
-            Enter a new title for this worksheet node.
+        <div className="space-y-4 font-sans text-xs">
+          <p className="text-theme-muted mb-2 leading-relaxed">
+            Enter a new title for this worksheet.
           </p>
           <CyberInput
             type="text"
@@ -1958,7 +1974,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
             value={renameWsTitle}
             onChange={(e) => setRenameWsTitle(e.target.value)}
           />
-          <div className="flex justify-end gap-3 pt-4 border-t border-cyan-500/10">
+          <div className="flex justify-end gap-3 pt-4 border-t border-accent/10">
             <CyberButton type="button" onClick={closeRenameWsModal} variant="secondary">
               Cancel
             </CyberButton>
@@ -1971,9 +1987,9 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
 
       {/* Delete Confirmation Modal */}
       <CyberModal isOpen={isDeleteConfirmOpen} onClose={closeDeleteConfirm} title="Delete Record?">
-        <div className="space-y-4 font-mono text-xs">
-          <p className="text-slate-400">This action cannot be undone.</p>
-          <div className="flex justify-end gap-3 pt-4 border-t border-cyan-500/10">
+        <div className="space-y-4 font-sans text-xs">
+          <p className="text-theme-muted">This action cannot be undone.</p>
+          <div className="flex justify-end gap-3 pt-4 border-t border-accent/10">
             <CyberButton type="button" onClick={closeDeleteConfirm} variant="secondary">
               Cancel
             </CyberButton>
@@ -1986,7 +2002,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
 
       {/* Add Column Modal */}
       <CyberModal isOpen={isAddColOpen} onClose={closeAddColModal} title="Create New Column">
-        <form className="space-y-4 font-mono text-xs" onSubmit={(e) => { e.preventDefault(); handleAddColumn(); }}>
+        <form className="space-y-4 font-sans text-xs" onSubmit={(e) => { e.preventDefault(); handleAddColumn(); }}>
           <div className="space-y-1">
             <label className="block font-bold text-primary uppercase tracking-wider text-[10px]">
               Column Name:
@@ -2007,7 +2023,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
             <select
               value={newColType}
               onChange={(e) => setNewColType(e.target.value)}
-              className="w-full px-3 py-2 bg-[#0a0f1d] text-[#E2E8F0] border border-cyan-500/30 focus:border-cyan-400 focus:outline-none font-mono text-xs rounded"
+              className="w-full px-3 py-2 bg-theme-card text-theme border border-accent/30 focus:border-accent focus:outline-none font-mono text-xs rounded"
             >
               {["Text", "Number", "Date", "DateTime", "Boolean", "Email", "Phone", "URL", "Long Text", "Single Select", "Multi Select"].map(t => (
                 <option key={t} value={t}>{t}</option>
@@ -2036,7 +2052,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
               id="newColRequired"
               checked={newColRequired}
               onChange={(e) => setNewColRequired(e.target.checked)}
-              className="rounded bg-[#0a0f1d] border-cyan-500/30 text-cyan-500 focus:ring-0 focus:ring-offset-0"
+              className="rounded bg-theme-card border-accent/30 text-accent focus:ring-0 focus:ring-offset-0"
             />
             <label htmlFor="newColRequired" className="font-bold text-primary uppercase tracking-wider text-[10px] cursor-pointer">
               Required
@@ -2051,7 +2067,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
               <select
                 value={newColDefault}
                 onChange={(e) => setNewColDefault(e.target.value)}
-                className="w-full px-3 py-2 bg-[#0a0f1d] text-[#E2E8F0] border border-cyan-500/30 focus:border-cyan-400 focus:outline-none font-mono text-xs rounded"
+                className="w-full px-3 py-2 bg-theme-card text-theme border border-accent/30 focus:border-accent focus:outline-none font-mono text-xs rounded"
               >
                 <option value="">No Default</option>
                 <option value="true">True</option>
@@ -2061,7 +2077,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
               <select
                 value={newColDefault}
                 onChange={(e) => setNewColDefault(e.target.value)}
-                className="w-full px-3 py-2 bg-[#0a0f1d] text-[#E2E8F0] border border-cyan-500/30 focus:border-cyan-400 focus:outline-none font-mono text-xs rounded"
+                className="w-full px-3 py-2 bg-theme-card text-theme border border-accent/30 focus:border-accent focus:outline-none font-mono text-xs rounded"
               >
                 <option value="">No Default</option>
                 {newColOptions.split(",").map(o => o.trim()).filter(Boolean).map(o => (
@@ -2078,7 +2094,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
             )}
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-cyan-500/10">
+          <div className="flex justify-end gap-3 pt-4 border-t border-accent/10">
             <CyberButton type="button" onClick={closeAddColModal} variant="secondary">
               Cancel
             </CyberButton>
@@ -2091,8 +2107,8 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
 
       {/* Manage Columns Modal */}
       <CyberModal isOpen={isManageColsOpen} onClose={closeManageColsModal} title="Manage Columns">
-        <div className="space-y-4 font-mono text-xs max-h-[450px] overflow-y-auto pr-1">
-          <p className="text-slate-400 mb-2 leading-relaxed">
+        <div className="space-y-4 font-sans text-xs max-h-[450px] overflow-y-auto pr-1">
+          <p className="text-theme-muted mb-2 leading-relaxed">
             Reorder, rename, hide, show, or delete columns in this worksheet.
           </p>
           <div className="space-y-2">
@@ -2101,7 +2117,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
               const isEditing = editingColId === col.name;
               
               return (
-                <div key={col.name} className="p-3 bg-[#0a0f1d] border border-cyan-500/20 rounded flex items-center justify-between gap-4">
+                <div key={col.name} className="p-3 bg-theme-card border border-accent/20 rounded flex items-center justify-between gap-4">
                   <div className="flex-1 min-w-0 space-y-1">
                     {isEditing ? (
                       <div className="flex gap-2">
@@ -2109,7 +2125,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
                           type="text"
                           value={editingColName}
                           onChange={(e) => setEditingColName(e.target.value)}
-                          className="px-2 py-1 bg-[#020617] text-slate-200 border border-cyan-500/40 rounded focus:outline-none focus:border-cyan-400 text-xs flex-1"
+                          className="px-2 py-1 bg-theme-card text-theme border border-accent/40 rounded focus:outline-none focus:border-accent text-xs flex-1"
                           autoFocus
                           onKeyDown={(e) => {
                             if (e.key === "Enter") handleRenameCol(col.name, editingColName);
@@ -2118,37 +2134,37 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
                         />
                         <button
                           onClick={() => handleRenameCol(col.name, editingColName)}
-                          className="px-2 py-1 bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 rounded text-[10px] font-bold uppercase hover:bg-cyan-500/30"
+                          className="px-2 py-1 bg-accent/20 text-accent border border-accent/30 rounded text-[10px] font-bold uppercase hover:bg-[var(--border-strong)]/30"
                         >
                           Save
                         </button>
                         <button
                           onClick={() => setEditingColId(null)}
-                          className="px-2 py-1 bg-slate-800 text-slate-400 rounded text-[10px] font-bold uppercase hover:bg-slate-700"
+                          className="px-2 py-1 bg-theme-surface text-theme-muted rounded text-[10px] font-bold uppercase hover:bg-theme-card"
                         >
                           Cancel
                         </button>
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-200 truncate">{col.display_name}</span>
-                        <span className="text-[9px] text-[#00E5FF] px-1.5 py-0.2 bg-[#00E5FF]/10 rounded font-mono uppercase">
+                        <span className="font-bold text-theme truncate">{col.display_name}</span>
+                        <span className="text-[9px] text-accent px-1.5 py-0.2 bg-accent/10 rounded font-mono uppercase">
                           {typeInfo.baseType}
                         </span>
                         {col.hidden && (
-                          <span className="text-[9px] text-slate-500 px-1.5 py-0.2 bg-slate-800 rounded font-mono uppercase">
+                          <span className="text-[9px] text-theme-muted px-1.5 py-0.2 bg-theme-surface rounded font-mono uppercase">
                             Hidden
                           </span>
                         )}
                         {typeInfo.required && (
-                          <span className="text-[9px] text-rose-500 px-1.5 py-0.2 bg-rose-550/10 rounded font-mono uppercase">
+                          <span className="text-[9px] text-danger px-1.5 py-0.2 bg-danger/10 rounded font-mono uppercase">
                             Required
                           </span>
                         )}
                       </div>
                     )}
-                    <div className="text-[10px] text-slate-500 font-mono">
-                      DB Field Name: <span className="text-slate-400">{col.name}</span>
+                    <div className="text-[10px] text-theme-muted font-mono">
+                      DB Field Name: <span className="text-theme-muted">{col.name}</span>
                     </div>
                   </div>
                   
@@ -2159,7 +2175,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
                           setEditingColId(col.name);
                           setEditingColName(col.display_name);
                         }}
-                        className="p-1 text-slate-400 hover:text-[#00E5FF] transition-colors"
+                        className="p-1 text-theme-muted hover:text-accent transition-colors"
                         title="Rename"
                       >
                         ✏️
@@ -2167,7 +2183,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
                     )}
                     <button
                       onClick={() => handleToggleHideCol(col.name, col.hidden || false)}
-                      className={`p-1 transition-colors ${col.hidden ? "text-slate-500 hover:text-white" : "text-[#00E5FF] hover:text-[#00E5FF]/70"}`}
+                      className={`p-1 transition-colors ${col.hidden ? "text-theme-muted hover:text-white" : "text-accent hover:text-accent/70"}`}
                       title={col.hidden ? "Show Column" : "Hide Column"}
                     >
                       {col.hidden ? "👁️" : "🕶️"}
@@ -2175,7 +2191,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
                     <button
                       onClick={() => handleMoveCol(col.name, "up", idx)}
                       disabled={idx === 0}
-                      className="p-1 text-slate-400 hover:text-white disabled:opacity-30 disabled:pointer-events-none"
+                      className="p-1 text-theme-muted hover:text-white disabled:opacity-30 disabled:pointer-events-none"
                       title="Move Up"
                     >
                       ↑
@@ -2183,14 +2199,14 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
                     <button
                       onClick={() => handleMoveCol(col.name, "down", idx)}
                       disabled={idx === (colsData || []).length - 1}
-                      className="p-1 text-slate-400 hover:text-white disabled:opacity-30 disabled:pointer-events-none"
+                      className="p-1 text-theme-muted hover:text-white disabled:opacity-30 disabled:pointer-events-none"
                       title="Move Down"
                     >
                       ↓
                     </button>
                     <button
                       onClick={() => handleDeleteCol(col.name, col.display_name)}
-                      className="p-1 text-rose-500 hover:text-rose-400 transition-colors ml-1"
+                      className="p-1 text-danger hover:text-danger transition-colors ml-1"
                       title="Delete Column"
                     >
                       🗑️
@@ -2201,7 +2217,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
             })}
           </div>
         </div>
-        <div className="flex justify-end pt-4 border-t border-cyan-500/10 mt-4">
+        <div className="flex justify-end pt-4 border-t border-accent/10 mt-4">
           <CyberButton variant="secondary" onClick={closeManageColsModal}>
             Close
           </CyberButton>
@@ -2213,15 +2229,15 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
         {selectedRecord && (
           <div className="flex flex-col h-full space-y-4">
             {/* Record Header: ID, Created, Updated */}
-            <div className="border-b border-cyan-500/20 pb-3 flex-shrink-0">
+            <div className="border-b border-accent/20 pb-3 flex-shrink-0">
               <div className="grid grid-cols-1 gap-2 text-[10px] font-mono">
                 <div className="flex justify-between items-center">
                   <span className="text-primary/60 uppercase font-bold">Record ID:</span>
                   <div className="flex items-center gap-2">
-                    <span className="text-slate-300 font-bold">{selectedRecord.id}</span>
+                    <span className="text-theme-secondary font-bold">{selectedRecord.id}</span>
                     {hasUnsavedChanges ? (
-                      <span className="flex items-center gap-1 text-[9px] font-mono text-amber-400 px-2 py-0.5 border border-amber-500/20 bg-amber-500/5 rounded-full animate-pulse uppercase tracking-wider font-bold">
-                        <span className="w-1 h-1 rounded-full bg-amber-400"></span> Unsaved Draft
+                      <span className="flex items-center gap-1 text-[9px] font-mono text-warning px-2 py-0.5 border border-warning/20 bg-warning/5 rounded-full animate-pulse uppercase tracking-wider font-bold">
+                        <span className="w-1 h-1 rounded-full bg-warning"></span> Unsaved Draft
                       </span>
                     ) : (
                       <span className="flex items-center gap-1 text-[9px] font-mono text-success px-2 py-0.5 border border-success/20 bg-success/5 rounded-full uppercase tracking-wider font-bold">
@@ -2232,17 +2248,17 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
                 </div>
                 <div className="flex justify-between">
                   <span className="text-primary/60 uppercase">Created:</span>
-                  <span className="text-slate-400">{selectedRecord.created_at ? new Date(selectedRecord.created_at).toLocaleString() : '-'}</span>
+                  <span className="text-theme-muted">{selectedRecord.created_at ? new Date(selectedRecord.created_at).toLocaleString() : '-'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-primary/60 uppercase">Updated:</span>
-                  <span className="text-slate-400">{selectedRecord.updated_at ? new Date(selectedRecord.updated_at).toLocaleString() : '-'}</span>
+                  <span className="text-theme-muted">{selectedRecord.updated_at ? new Date(selectedRecord.updated_at).toLocaleString() : '-'}</span>
                 </div>
               </div>
             </div>
 
             {/* Tabs Header Navigation */}
-            <div className="flex border-b border-cyan-500/25 font-mono text-[11px] flex-shrink-0 bg-[#090e1a] rounded-t-lg overflow-hidden">
+            <div className="flex border-b border-accent/25 font-sans text-[11px] flex-shrink-0 bg-theme-card rounded-t-lg overflow-hidden">
               {(["details", "notes", "timeline"] as const).map((tab) => {
                 const isActive = drawerTab === tab;
                 const label = tab.toUpperCase();
@@ -2260,8 +2276,8 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
                     onClick={() => setDrawerTab(tab)}
                     className={`flex-1 py-2 text-center font-bold tracking-wider transition-all border-b-2 ${
                       isActive 
-                        ? "text-cyan-400 border-cyan-400 bg-cyan-500/5 shadow-[inset_0_-2px_10px_rgba(0,229,255,0.05)]" 
-                        : "text-slate-400 border-transparent hover:text-slate-200"
+                        ? "text-accent border-accent bg-accent/5" 
+                        : "text-theme-muted border-transparent hover:text-theme"
                     }`}
                   >
                     {label}{countBadge}
@@ -2279,7 +2295,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
                     {colsData && colsData.map((col: any) => {
                       const fieldName = col.display_name;
                       const fieldValue = detailEditValues[col.name] || "";
-                      const inputClasses = "w-full px-3 py-2 bg-[#0a0f1d] text-[#E2E8F0] border border-cyan-500/30 focus:border-cyan-400 focus:outline-none font-mono text-sm rounded";
+                      const inputClasses = "w-full px-3 py-2 bg-theme-card text-theme border border-accent/30 focus:border-accent focus:outline-none font-mono text-sm rounded";
                       const typeInfo = parseColumnType(col.data_type);
                       
                       let inputField = null;
@@ -2309,7 +2325,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
                           handleDetailFieldChange(col.name, newList.join(", "));
                         };
                         inputField = (
-                          <div className="flex flex-wrap gap-2 p-2 border border-cyan-500/20 rounded bg-black/40">
+                          <div className="flex flex-wrap gap-2 p-2 border border-accent/20 rounded bg-black/40">
                             {typeInfo.options.map((opt) => (
                               <label key={opt} className="flex items-center gap-1 cursor-pointer hover:text-white">
                                 <input
@@ -2317,7 +2333,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
                                   checked={selectedList.includes(opt)}
                                   disabled={!canEdit}
                                   onChange={(e) => handleMultiChange(opt, e.target.checked)}
-                                  className="rounded bg-[#0a0f1d] border-cyan-500/30 text-cyan-500 focus:ring-0 focus:ring-offset-0 text-xs"
+                                  className="rounded bg-theme-card border-accent/30 text-accent focus:ring-0 focus:ring-offset-0 text-xs"
                                 />
                                 <span>{opt}</span>
                               </label>
@@ -2371,7 +2387,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
                       return (
                         <div key={col.name} className="space-y-2">
                           <label className="block font-bold text-primary/80 uppercase tracking-wider text-[10px]">
-                            {fieldName} {typeInfo.required && <span className="text-rose-500 font-bold">*</span>}
+                            {fieldName} {typeInfo.required && <span className="text-danger font-bold">*</span>}
                           </label>
                           {inputField}
                         </div>
@@ -2380,13 +2396,13 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
                   </div>
                   
                   {/* Quick Actions */}
-                  <div className="pt-4 border-t border-cyan-500/20 space-y-3">
+                  <div className="pt-4 border-t border-accent/20 space-y-3">
                     <div className="text-[10px] text-primary/60 uppercase font-bold">Quick Actions</div>
                     <div className="flex flex-wrap gap-2">
                       {["Status", "Priority", "Tag"].map((action) => (
                         <button
                           key={action}
-                          className="px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-wider rounded border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 transition-all"
+                          className="px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-wider rounded border border-accent/30 text-accent hover:bg-[var(--border-strong)]/10 transition-all"
                           onClick={() => {
                             const newVal = prompt(`Enter new ${action}:`);
                             if (newVal) handleQuickAction(action.toLowerCase(), newVal);
@@ -2415,7 +2431,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
                   {/* Public Notes (Shared) */}
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-cyan-400 uppercase tracking-widest neon-text-primary">
+                      <span className="text-xs font-bold text-accent uppercase tracking-widest">
                         Public Notes (Shared)
                       </span>
                       <CyberBadge variant="primary">{publicNotes.length}</CyberBadge>
@@ -2423,24 +2439,24 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
 
                     <div className="space-y-3 max-h-[250px] overflow-y-auto pr-1">
                       {publicNotes.length === 0 ? (
-                        <p className="text-[11px] font-mono text-slate-500 italic">No public notes yet.</p>
+                        <p className="text-[11px] font-mono text-theme-muted italic">No public notes yet.</p>
                       ) : (
                         publicNotes.map((note) => {
-                          const isOwn = String(note.user_id) === String(appUser?.id);
+                          const isOwn = String(note.created_by) === String(appUser?.id);
                           const isEditing = editingNoteId === note.id;
-                          const userDisplay = note.users?.username || getUserDisplayName(note.user_id);
+                          const userDisplay = getUserDisplayName(note.created_by);
                           const canDeleteN = isOwn || isSuperAdmin || role === "Admin";
                           return (
-                            <div key={note.id} className="p-3 bg-[#0a0f1d] border border-cyan-500/10 rounded font-mono text-xs space-y-2">
-                              <div className="flex items-center justify-between border-b border-cyan-500/5 pb-1 text-[10px]">
-                                <span className="text-cyan-400 font-bold">{userDisplay}</span>
-                                <span className="text-slate-500">{note.created_at ? new Date(note.created_at).toLocaleString() : ""}</span>
+                            <div key={note.id} className="p-3 bg-theme-card border border-accent/10 rounded font-mono text-xs space-y-2">
+                              <div className="flex items-center justify-between border-b border-accent/5 pb-1 text-[10px]">
+                                <span className="text-accent font-bold">{userDisplay}</span>
+                                <span className="text-theme-muted">{note.created_at ? new Date(note.created_at).toLocaleString() : ""}</span>
                               </div>
                               
                               {isEditing ? (
                                 <div className="space-y-2 pt-1">
                                   <textarea
-                                    className="w-full p-2 bg-[#020617] text-slate-200 border border-cyan-500/30 rounded focus:outline-none focus:border-cyan-400 text-xs"
+                                    className="w-full p-2 bg-theme-card text-theme border border-accent/30 rounded focus:outline-none focus:border-accent text-xs"
                                     value={editingNoteContent}
                                     onChange={(e) => setEditingNoteContent(e.target.value)}
                                   />
@@ -2450,20 +2466,20 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
                                         setEditingNoteId(null);
                                         setEditingNoteContent("");
                                       }}
-                                      className="px-2 py-1 bg-slate-800 text-slate-400 hover:bg-slate-700 rounded text-[10px] uppercase font-bold"
+                                      className="px-2 py-1 bg-theme-surface text-theme-muted hover:bg-theme-card rounded text-[10px] uppercase font-bold"
                                     >
                                       Cancel
                                     </button>
                                     <button
                                       onClick={() => handleUpdateNote(note.id)}
-                                      className="px-2 py-1 bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 hover:bg-cyan-500/30 rounded text-[10px] uppercase font-bold"
+                                      className="px-2 py-1 bg-accent/20 text-accent border border-accent/40 hover:bg-[var(--border-strong)]/30 rounded text-[10px] uppercase font-bold"
                                     >
                                       Save
                                     </button>
                                   </div>
                                 </div>
                               ) : (
-                                <p className="whitespace-pre-wrap text-slate-300 break-words pt-1">{note.content}</p>
+                                <p className="whitespace-pre-wrap text-theme-secondary break-words pt-1">{note.note}</p>
                               )}
 
                               {!isEditing && (isOwn || canDeleteN) && (
@@ -2472,9 +2488,9 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
                                     <button
                                       onClick={() => {
                                         setEditingNoteId(note.id);
-                                        setEditingNoteContent(note.content);
+                                        setEditingNoteContent(note.note);
                                       }}
-                                      className="text-cyan-500 hover:text-cyan-400 font-bold uppercase"
+                                      className="text-accent hover:text-accent font-bold uppercase"
                                     >
                                       Edit
                                     </button>
@@ -2482,7 +2498,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
                                   {canDeleteN && (
                                     <button
                                       onClick={() => handleDeleteNote(note.id)}
-                                      className="text-rose-500 hover:text-rose-400 font-bold uppercase"
+                                      className="text-danger hover:text-danger font-bold uppercase"
                                     >
                                       Delete
                                     </button>
@@ -2499,7 +2515,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
                     <div className="space-y-2 pt-2">
                       <textarea
                         placeholder="Add public note..."
-                        className="w-full p-2 bg-[#020617] text-[#E2E8F0] border border-cyan-500/20 focus:border-cyan-400 focus:outline-none font-mono text-xs rounded"
+                        className="w-full p-2 bg-theme-card text-theme border border-accent/20 focus:border-accent focus:outline-none font-mono text-xs rounded"
                         value={newPublicNoteContent}
                         onChange={(e) => setNewPublicNoteContent(e.target.value)}
                         rows={2}
@@ -2518,9 +2534,9 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
                   </div>
 
                   {/* Private Notes (User Specific) */}
-                  <div className="pt-5 border-t border-cyan-500/20 space-y-4">
+                  <div className="pt-5 border-t border-accent/20 space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-amber-400 uppercase tracking-widest neon-text-warning">
+                      <span className="text-xs font-bold text-warning uppercase tracking-widest">
                         My Private Notes
                       </span>
                       <CyberBadge variant="warning">{privateNotes.length}</CyberBadge>
@@ -2528,21 +2544,21 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
 
                     <div className="space-y-3 max-h-[250px] overflow-y-auto pr-1">
                       {privateNotes.length === 0 ? (
-                        <p className="text-[11px] font-mono text-slate-500 italic">No private notes yet.</p>
+                        <p className="text-[11px] font-mono text-theme-muted italic">No private notes yet.</p>
                       ) : (
                         privateNotes.map((note) => {
                           const isEditing = editingNoteId === note.id;
                           return (
-                            <div key={note.id} className="p-3 bg-[#0a0f1d] border border-amber-500/10 rounded font-mono text-xs space-y-2">
-                              <div className="flex items-center justify-between border-b border-amber-500/5 pb-1 text-[10px]">
-                                <span className="text-amber-400 font-bold">Personal Note</span>
-                                <span className="text-slate-500">{note.created_at ? new Date(note.created_at).toLocaleString() : ""}</span>
+                            <div key={note.id} className="p-3 bg-theme-card border border-warning/10 rounded font-mono text-xs space-y-2">
+                              <div className="flex items-center justify-between border-b border-warning/5 pb-1 text-[10px]">
+                                <span className="text-warning font-bold">Personal Note</span>
+                                <span className="text-theme-muted">{note.created_at ? new Date(note.created_at).toLocaleString() : ""}</span>
                               </div>
                               
                               {isEditing ? (
                                 <div className="space-y-2 pt-1">
                                   <textarea
-                                    className="w-full p-2 bg-[#020617] text-slate-200 border border-amber-500/30 rounded focus:outline-none focus:border-amber-400 text-xs"
+                                    className="w-full p-2 bg-theme-card text-theme border border-warning/30 rounded focus:outline-none focus:border-warning text-xs"
                                     value={editingNoteContent}
                                     onChange={(e) => setEditingNoteContent(e.target.value)}
                                   />
@@ -2552,20 +2568,20 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
                                         setEditingNoteId(null);
                                         setEditingNoteContent("");
                                       }}
-                                      className="px-2 py-1 bg-slate-800 text-slate-400 hover:bg-slate-700 rounded text-[10px] uppercase font-bold"
+                                      className="px-2 py-1 bg-theme-surface text-theme-muted hover:bg-theme-card rounded text-[10px] uppercase font-bold"
                                     >
                                       Cancel
                                     </button>
                                     <button
                                       onClick={() => handleUpdateNote(note.id)}
-                                      className="px-2 py-1 bg-amber-500/20 text-amber-400 border border-amber-500/40 hover:bg-amber-500/30 rounded text-[10px] uppercase font-bold"
+                                      className="px-2 py-1 bg-warning/20 text-warning border border-warning/40 hover:bg-warning/30 rounded text-[10px] uppercase font-bold"
                                     >
                                       Save
                                     </button>
                                   </div>
                                 </div>
                               ) : (
-                                <p className="whitespace-pre-wrap text-slate-300 break-words pt-1">{note.content}</p>
+                                <p className="whitespace-pre-wrap text-theme-secondary break-words pt-1">{note.note}</p>
                               )}
 
                               {!isEditing && (
@@ -2573,15 +2589,15 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
                                   <button
                                     onClick={() => {
                                       setEditingNoteId(note.id);
-                                      setEditingNoteContent(note.content);
+                                      setEditingNoteContent(note.note);
                                     }}
-                                    className="text-amber-500 hover:text-amber-400 font-bold uppercase"
+                                    className="text-warning hover:text-warning font-bold uppercase"
                                   >
                                     Edit
                                   </button>
                                   <button
                                     onClick={() => handleDeleteNote(note.id)}
-                                    className="text-rose-500 hover:text-rose-400 font-bold uppercase"
+                                    className="text-danger hover:text-danger font-bold uppercase"
                                   >
                                     Delete
                                   </button>
@@ -2597,7 +2613,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
                     <div className="space-y-2 pt-2">
                       <textarea
                         placeholder="Add personal note..."
-                        className="w-full p-2 bg-[#020617] text-[#E2E8F0] border border-amber-500/20 focus:border-amber-400 focus:outline-none font-mono text-xs rounded"
+                        className="w-full p-2 bg-theme-card text-theme border border-warning/20 focus:border-warning focus:outline-none font-mono text-xs rounded"
                         value={newPrivateNoteContent}
                         onChange={(e) => setNewPrivateNoteContent(e.target.value)}
                         rows={2}
@@ -2622,7 +2638,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
                   {/* Activity Timeline */}
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-rose-400 uppercase tracking-widest neon-text-danger">
+                      <span className="text-xs font-bold text-danger uppercase tracking-widest">
                         Activity Timeline
                       </span>
                       <CyberBadge variant="danger">{recordAuditLogs.length}</CyberBadge>
@@ -2630,7 +2646,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
 
                     <div className="space-y-3 max-h-[450px] overflow-y-auto pr-1">
                       {recordAuditLogs.length === 0 ? (
-                        <p className="text-[11px] font-mono text-slate-500 italic">No activity registered for this record.</p>
+                        <p className="text-[11px] font-mono text-theme-muted italic">No activity registered for this record.</p>
                       ) : (
                         recordAuditLogs.map((log) => {
                           const userDisplay = getUserDisplayName(log.user_id);
@@ -2667,12 +2683,12 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
                           }
 
                           return (
-                            <div key={log.id} className="p-2 bg-[#0a0f1d]/50 border border-cyan-500/5 rounded font-mono text-[10px] space-y-1">
-                              <div className="flex justify-between text-slate-500">
-                                <span className="text-rose-400 font-bold">{userDisplay}</span>
+                            <div key={log.id} className="p-2 bg-theme-card/50 border border-accent/5 rounded font-mono text-[10px] space-y-1">
+                              <div className="flex justify-between text-theme-muted">
+                                <span className="text-danger font-bold">{userDisplay}</span>
                                 <span>{log.timestamp ? new Date(log.timestamp).toLocaleString() : ""}</span>
                               </div>
-                              <p className="text-slate-300 break-words">{message}</p>
+                              <p className="text-theme-secondary break-words">{message}</p>
                             </div>
                           );
                         })
@@ -2684,7 +2700,7 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
             </div>
             
             {/* Action Buttons: Save, Delete, Close */}
-            <div className="flex flex-col gap-2 pt-4 border-t border-cyan-500/20 flex-shrink-0">
+            <div className="flex flex-col gap-2 pt-4 border-t border-accent/20 flex-shrink-0">
               <CyberButton type="button" onClick={saveRecordDetail} variant="primary" className="w-full">
                 Save Changes
               </CyberButton>
@@ -2710,19 +2726,17 @@ const moveColumnRight = async (accessor: string, currentIndex: number, total: nu
             initial={{ y: 50, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 50, opacity: 0 }}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center justify-between gap-6 px-6 py-4 bg-[#0a0f1d]/95 backdrop-blur-md border border-[#00E5FF]/40 shadow-[0_0_20px_rgba(0,229,255,0.25)] rounded-xl font-mono text-xs w-[calc(100%-2rem)] sm:w-[400px]"
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center justify-between gap-6 px-6 py-4 bg-theme-card/95 backdrop-blur-md border border-accent/40 rounded-xl font-sans text-xs w-[calc(100%-2rem)] sm:w-[400px]"
           >
-            <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-primary" />
-            <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-primary" />
             
             <div className="flex-1">
-              <span className="text-primary font-bold animate-pulse">DELETION REGISTERED</span>
-              <p className="text-slate-300 mt-1">{lastDeletedRows?.length} row(s) removed. Autoresolve in {undoCountdown}s.</p>
+              <span className="text-primary font-bold">Rows Deleted</span>
+              <p className="text-theme-secondary mt-1">{lastDeletedRows?.length} row(s) removed. Auto-restore in {undoCountdown}s.</p>
             </div>
             
             <button
               onClick={handleUndo}
-              className="px-4 py-2 font-mono text-xs font-bold uppercase tracking-widest bg-[#00FF9D]/10 hover:bg-[#00FF9D]/20 border border-[#00FF9D]/30 hover:border-[#00FF9D]/50 text-[#00FF9D] shadow-[0_0_8px_rgba(0,255,157,0.1)] hover:shadow-[0_0_15px_rgba(0,255,157,0.25)] rounded-lg transition-all duration-300"
+              className="px-4 py-2 font-sans text-xs font-bold uppercase tracking-widest bg-success/10 hover:bg-success/20 border border-success/30 hover:border-success/50 text-success rounded-lg transition-all duration-300"
             >
               UNDO
             </button>

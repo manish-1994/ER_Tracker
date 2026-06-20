@@ -14,50 +14,34 @@ const Profile: React.FC = () => {
   const { appUser } = useAuth();
   const toast = useToast();
   const queryClient = useQueryClient();
-
-  // Local form state
   const [usernameInput, setUsernameInput] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passError, setPassError] = useState("");
-  const [passSuccess, setPassSuccess] = useState("");
   const [profileSuccess, setProfileSuccess] = useState("");
 
-  // Query database for user metadata (is_active)
-  const { data: dbUser, isLoading: dbUserLoading } = useQuery({
+  const { data: dbUser } = useQuery({
     queryKey: ["dbProfile", appUser?.id],
     queryFn: async () => {
       if (!appUser?.id) return null;
-      const { data, error } = await supabase
-        .from("users")
-        .select("is_active")
-        .eq("id", appUser.id)
-        .single();
-      if (error) throw error;
-      return {
-        ...data,
-        created_at: null
-      };
+      const { data } = await supabase.from("users").select("is_active").eq("id", appUser.id).single();
+      return data ? { ...data, created_at: null } : null;
     },
     enabled: !!appUser?.id,
   });
 
   useEffect(() => {
-    if (appUser?.username) {
-      setUsernameInput(appUser.username);
-    }
+    if (appUser?.username) setUsernameInput(appUser.username);
   }, [appUser]);
 
-  // Update profile mutation (custom users table)
   const profileMutation = useMutation({
     mutationFn: async (updatedName: string) => {
       if (!appUser?.id) return;
       await updateUser(appUser.id.toString(), { username: updatedName });
     },
     onSuccess: () => {
-      toast.success("User credentials synchronized successfully.");
+      toast.success("Profile updated successfully.");
       queryClient.invalidateQueries({ queryKey: ["dbProfile", appUser?.id] });
-      // Update local storage user session info
       const stored = localStorage.getItem("appUser");
       if (stored && appUser) {
         const parsed = JSON.parse(stored);
@@ -66,23 +50,22 @@ const Profile: React.FC = () => {
       }
     },
     onError: (err: any) => {
-      toast.error(err.message || "Failed to update profile name");
+      toast.error(err.message || "Failed to update profile");
     }
   });
 
-  // Password mutation (custom users table)
   const passwordMutation = useMutation({
     mutationFn: async (passwordVal: string) => {
       if (!appUser?.id) return;
       await updateUser(appUser.id.toString(), { password: passwordVal });
     },
     onSuccess: () => {
-      toast.success("Security passkey updated successfully.");
+      toast.success("Password updated successfully.");
       setNewPassword("");
       setConfirmPassword("");
     },
     onError: (err: any) => {
-      toast.error(err.message || "Failed to update passkey.");
+      toast.error(err.message || "Failed to update password.");
     }
   });
 
@@ -96,13 +79,12 @@ const Profile: React.FC = () => {
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setPassError("");
-    setPassSuccess("");
     if (!newPassword) {
       setPassError("Password field cannot be empty.");
       return;
     }
     if (newPassword !== confirmPassword) {
-      setPassError("Password verification mismatch.");
+      setPassError("Passwords do not match.");
       return;
     }
     passwordMutation.mutate(newPassword);
@@ -110,81 +92,57 @@ const Profile: React.FC = () => {
 
   if (!appUser) {
     return (
-      <div className="p-10 text-center font-mono text-muted animate-pulse">
-        Access Denied: Synchronize session credentials...
+      <div className="p-10 text-center font-sans text-secondary animate-pulse">
+        Loading profile...
       </div>
     );
   }
 
-  const roleVariant: Record<string, "primary" | "secondary" | "success" | "warning" | "danger"> = {
-    superadmin: "danger",
-    admin: "secondary",
-    manager: "primary",
-    analyst: "warning",
-    viewer: "success",
-  };
-
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
-      {/* Title Header */}
       <div>
-        <h1 className="text-3xl font-mono font-black tracking-wider text-primary uppercase neon-text-primary">
-          Operator Profile Center
+        <h1 className="text-2xl font-sans font-bold tracking-tight text-textPrimary">
+          Profile
         </h1>
-        <p className="text-muted font-mono text-sm">
-          Operator credentials & system security clearances panel
+        <p className="text-secondary font-sans text-sm">
+          Manage your account settings
         </p>
       </div>
 
-      {/* Profile ID Card */}
-      <CyberCard variant="primary" className="flex flex-col md:flex-row items-center gap-6 p-6 relative overflow-hidden">
+      <CyberCard className="flex flex-col md:flex-row items-center gap-6 p-6">
         <div className="flex-shrink-0">
           <CyberAvatar username={appUser.username} size="lg" isOnline={dbUser?.is_active ?? true} />
         </div>
-        
         <div className="flex-1 text-center md:text-left space-y-2">
-          <h2 className="text-3xl font-mono font-black text-primary uppercase tracking-wider neon-text-primary">
+          <h2 className="text-2xl font-sans font-bold text-textPrimary">
             {appUser.username}
           </h2>
-          
           <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
             {(appUser.roles || []).map((role) => (
-              <CyberBadge key={role} variant={roleVariant[role.toLowerCase()] || "muted"}>
+              <CyberBadge key={role} variant="primary">
                 {role}
               </CyberBadge>
             ))}
-            {(!appUser.roles || appUser.roles.length === 0) && (
-              <CyberBadge variant="muted">NO CLEARANCE</CyberBadge>
-            )}
           </div>
-
-          <div className="text-xs font-mono text-muted space-y-1 pt-2">
-            <div>OPERATOR NODE ID: <span className="text-text font-bold">0{appUser.id}</span></div>
-            {dbUser?.created_at && (
-              <div>COMMISSIONED DATE: <span className="text-text font-bold">
-                {new Date(dbUser.created_at).toLocaleString()}
-              </span></div>
-            )}
+          <div className="text-xs font-mono text-secondary space-y-1 pt-2">
+            <div>User ID: <span className="text-textPrimary font-bold">{appUser.id}</span></div>
           </div>
         </div>
       </CyberCard>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Account Info Change */}
         <CyberCard className="space-y-4">
-          <h3 className="text-md font-mono font-bold tracking-widest text-primary uppercase border-b border-cyan-500/25 pb-2">
-            Operator Settings
+          <h3 className="text-md font-sans font-semibold text-textPrimary border-b border-secondary pb-2">
+            Profile Settings
           </h3>
-          
           <form onSubmit={handleProfileSubmit} className="space-y-4">
             {profileSuccess && (
-              <div className="p-3 bg-success/10 border border-success/40 text-success text-xs font-mono rounded">
+              <div className="p-3 bg-success/10 border border-success/30 text-success text-xs font-sans rounded">
                 {profileSuccess}
               </div>
             )}
-
-            <div className="space-y-1 font-mono">
-              <label className="text-xs text-muted uppercase tracking-wider">Username Handle</label>
+            <div className="space-y-1 font-sans">
+              <label className="text-xs text-secondary">Username</label>
               <CyberInput 
                 type="text" 
                 value={usernameInput} 
@@ -192,35 +150,26 @@ const Profile: React.FC = () => {
                 required
               />
             </div>
-
             <div className="pt-2">
               <CyberButton type="submit" variant="primary" disabled={profileMutation.isPending}>
-                {profileMutation.isPending ? "Syncing..." : "Sync Credentials"}
+                {profileMutation.isPending ? "Saving..." : "Save Changes"}
               </CyberButton>
             </div>
           </form>
         </CyberCard>
 
-        {/* Password Update console */}
-        <CyberCard variant="secondary" className="space-y-4">
-          <h3 className="text-md font-mono font-bold tracking-widest text-secondary uppercase border-b border-purple-500/25 pb-2">
-            Security Passkey Change
+        <CyberCard className="space-y-4">
+          <h3 className="text-md font-sans font-semibold text-textPrimary border-b border-secondary pb-2">
+            Change Password
           </h3>
-
           <form onSubmit={handlePasswordSubmit} className="space-y-4">
             {passError && (
-              <div className="p-3 bg-danger/10 border border-danger/40 text-danger text-xs font-mono rounded">
+              <div className="p-3 bg-danger/10 border border-danger/30 text-danger text-xs font-sans rounded">
                 {passError}
               </div>
             )}
-            {passSuccess && (
-              <div className="p-3 bg-success/10 border border-success/40 text-success text-xs font-mono rounded">
-                {passSuccess}
-              </div>
-            )}
-
-            <div className="space-y-1 font-mono">
-              <label className="text-xs text-muted uppercase tracking-wider">New Password</label>
+            <div className="space-y-1 font-sans">
+              <label className="text-xs text-secondary">New Password</label>
               <CyberInput 
                 type="password" 
                 value={newPassword}
@@ -229,9 +178,8 @@ const Profile: React.FC = () => {
                 required
               />
             </div>
-
-            <div className="space-y-1 font-mono">
-              <label className="text-xs text-muted uppercase tracking-wider">Verify Password</label>
+            <div className="space-y-1 font-sans">
+              <label className="text-xs text-secondary">Confirm Password</label>
               <CyberInput 
                 type="password" 
                 value={confirmPassword}
@@ -240,10 +188,9 @@ const Profile: React.FC = () => {
                 required
               />
             </div>
-
             <div className="pt-2">
               <CyberButton type="submit" variant="secondary" disabled={passwordMutation.isPending}>
-                {passwordMutation.isPending ? "Re-keying..." : "Update Passkey"}
+                {passwordMutation.isPending ? "Updating..." : "Update Password"}
               </CyberButton>
             </div>
           </form>

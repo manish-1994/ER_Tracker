@@ -122,32 +122,26 @@ export const SheetSelector: React.FC<SheetSelectorProps> = ({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md font-mono">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md font-sans">
           <motion.div
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
-            className="w-full max-w-2xl bg-[#040912] border border-cyan-500/30 rounded-xl p-6 relative overflow-hidden shadow-[0_0_50px_rgba(0,229,255,0.15)] flex flex-col max-h-[85vh]"
+            className="w-full max-w-2xl bg-theme-card border border-accent/30 rounded-xl p-6 relative flex flex-col max-h-[85vh]"
           >
-            {/* Tech accents */}
-            <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-primary" />
-            <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-primary" />
-            <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-primary" />
-            <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-primary" />
-
             {/* Modal Header */}
-            <div className="border-b border-cyan-500/20 pb-3 mb-4 flex justify-between items-center shrink-0">
+            <div className="border-b border-accent/20 pb-3 mb-4 flex justify-between items-center shrink-0">
               <div>
-                <h3 className="text-md font-black tracking-widest text-primary uppercase neon-text-primary">
-                  Worksheet Selection Catalog
+                <h3 className="text-md font-black tracking-widest text-primary uppercase">
+                  Select Worksheet
                 </h3>
-                <p className="text-[10px] text-slate-500">
-                  Select a clean dataset grid to inspect or modify
+                <p className="text-[10px] text-theme-muted">
+                  Choose a sheet to view or edit
                 </p>
               </div>
               <button
                 onClick={onClose}
-                className="text-slate-400 hover:text-rose-500 font-bold transition-colors text-xs border border-cyan-500/20 hover:border-rose-500/50 bg-[#070d19] px-2 py-1 rounded"
+                className="text-theme-muted hover:text-danger font-bold transition-colors text-xs border border-accent/20 hover:border-danger/50 bg-theme-card px-2 py-1 rounded"
               >
                 CLOSE
               </button>
@@ -171,14 +165,14 @@ export const SheetSelector: React.FC<SheetSelectorProps> = ({
                   SYNCHRONIZING SCHEMAS...
                 </div>
               ) : filteredSheets.length === 0 ? (
-                <div className="text-center py-12 text-xs text-slate-500 uppercase tracking-widest">
+                <div className="text-center py-12 text-xs text-theme-muted uppercase tracking-widest">
                   No sheets matching query.
                 </div>
               ) : (
-                <div className="border border-cyan-500/10 rounded-lg overflow-hidden bg-black/30">
+                <div className="border border-accent/10 rounded-lg overflow-hidden bg-black/30">
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
-                      <tr className="bg-cyan-950/20 text-primary border-b border-cyan-500/20 text-[10px] tracking-wider uppercase font-bold">
+                      <tr className="bg-[var(--border-strong)]/20 text-primary border-b border-accent/20 text-[10px] tracking-wider uppercase font-bold">
                         <th className="p-3">Sheet Name</th>
                         <th className="p-3 text-center">Rows</th>
                         <th className="p-3 text-center">Columns</th>
@@ -191,26 +185,26 @@ export const SheetSelector: React.FC<SheetSelectorProps> = ({
                         <tr
                           key={sheet.id}
                           onClick={() => onSelect(sheet.id)}
-                          className="border-b border-cyan-500/5 hover:bg-cyan-500/5 transition-colors cursor-pointer"
+                          className="border-b border-accent/5 hover:bg-accent/5 transition-colors cursor-pointer"
                         >
                           <td className="p-3 font-bold text-text truncate max-w-[200px]" title={sheet.name}>
                             {sheet.cleanName}
                           </td>
-                          <td className="p-3 text-center text-slate-300">
+                          <td className="p-3 text-center text-theme-secondary">
                             {loading && sheetDetails[sheet.id] === undefined ? (
                               <span className="animate-pulse">...</span>
                             ) : (
                               sheet.rowCount
                             )}
                           </td>
-                          <td className="p-3 text-center text-slate-300">
+                          <td className="p-3 text-center text-theme-secondary">
                             {loading && sheetDetails[sheet.id] === undefined ? (
                               <span className="animate-pulse">...</span>
                             ) : (
                               sheet.colCount
                             )}
                           </td>
-                          <td className="p-3 text-center text-[10px] text-slate-500">
+                          <td className="p-3 text-center text-[10px] text-theme-muted">
                             {loading && sheetDetails[sheet.id] === undefined ? (
                               <span className="animate-pulse">...</span>
                             ) : (

@@ -48,52 +48,19 @@ let discoveredRecordsTables: string[] | null = null;
 
 const discoverRecordsTables = async (): Promise<string[]> => {
   if (discoveredRecordsTables) return discoveredRecordsTables;
-  
-  try {
-    const { data, error } = await supabase
-      .from("sheets")
-      .select("records_table_name")
-      .not("records_table_name", "is", null);
-      
-    if (error) throw error;
-    
-    const tables = (data ?? [])
-      .map((s: any) => s.records_table_name)
-      .filter(Boolean);
-      
-    discoveredRecordsTables = [...new Set(tables)];
-    return discoveredRecordsTables;
-  } catch {
-    discoveredRecordsTables = Object.values(SHEET_TO_RECORD_TABLE);
-    return discoveredRecordsTables;
-  }
+  discoveredRecordsTables = Object.values(SHEET_TO_RECORD_TABLE);
+  return discoveredRecordsTables;
 };
 
 const findRecordsTablesForSheets = async (sheetIds: string[]): Promise<string[]> => {
   const tables: string[] = [];
   
-  try {
-    const { data: sheets, error } = await supabase
-      .from("sheets")
-      .select("records_table_name")
-      .in("id", sheetIds)
-      .not("records_table_name", "is", null);
-      
-    if (!error && sheets) {
-      for (const sheet of sheets) {
-        if (sheet.records_table_name) {
-          tables.push(sheet.records_table_name);
-        }
-      }
-    }
-  } catch {
-    // ignore
-  }
-  
   for (const sheetId of sheetIds) {
     const stored = localStorage.getItem(`sheet_table_map_${sheetId}`);
     if (stored) {
       tables.push(stored);
+    } else if (SHEET_TO_RECORD_TABLE[sheetId]) {
+      tables.push(SHEET_TO_RECORD_TABLE[sheetId]);
     }
   }
   
@@ -168,7 +135,7 @@ export const deleteWorkbook = async (
   
   const { data: sheets, error: sheetsFetchErr } = await supabase
     .from("sheets")
-    .select("id, records_table_name")
+    .select("id")
     .eq("workbook_id", workbookId);
   
   if (sheetsFetchErr) {
@@ -189,14 +156,6 @@ export const deleteWorkbook = async (
   }
   
   const recordsTables = await findRecordsTablesForSheets(sheetIds);
-  
-  if (sheets) {
-    sheets.forEach((s: any) => {
-      if (s.records_table_name && !recordsTables.includes(s.records_table_name)) {
-        recordsTables.push(s.records_table_name);
-      }
-    });
-  }
   
   for (const table of recordsTables) {
     try {

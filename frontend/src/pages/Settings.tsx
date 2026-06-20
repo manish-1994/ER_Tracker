@@ -61,14 +61,14 @@ export const Settings: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Core HUD settings */}
         <CyberCard className="space-y-4">
-          <h2 className="text-sm font-mono font-bold tracking-widest text-primary uppercase border-b border-cyan-500/25 pb-2">
-            Visual & Sound Calibrations
+          <h2 className="text-sm font-sans font-bold tracking-widest text-primary uppercase border-b border-accent/25 pb-2">
+            Visual and Sound Calibrations
           </h2>
 
-          <div className="space-y-4 font-mono text-xs">
+          <div className="space-y-4 font-sans text-xs">
             {/* HUD Accent */}
             <div className="space-y-2">
-              <label className="block text-[10px] text-slate-400 uppercase font-bold tracking-wider">
+              <label className="block text-[10px] text-theme-muted uppercase font-bold tracking-wider">
                 HUD Neon Theme Accent
               </label>
               <div className="grid grid-cols-3 gap-2">
@@ -79,11 +79,11 @@ export const Settings: React.FC = () => {
                     className={`p-2 border rounded-lg flex items-center justify-center gap-1.5 transition-all ${
                       hudAccent === acc
                         ? "border-primary bg-primary/10 text-primary"
-                        : "border-cyan-500/10 bg-black/40 text-slate-400 hover:border-cyan-500/30"
+                        : "border-accent/10 bg-black/40 text-theme-muted hover:border-accent/30"
                     }`}
                   >
                     <span className={`w-2.5 h-2.5 rounded-full ${
-                      acc === "cyan" ? "bg-cyan-400" : acc === "purple" ? "bg-purple-400" : "bg-green-400"
+                      acc === "cyan" ? "bg-accent" : acc === "purple" ? "bg-secondary" : "bg-success"
                     }`} />
                     <span className="capitalize">{acc} Accents</span>
                   </button>
@@ -92,30 +92,30 @@ export const Settings: React.FC = () => {
             </div>
 
             {/* Sound Toggles */}
-            <div className="flex items-center justify-between p-2 border border-cyan-500/10 bg-[#050b14]/50 rounded-lg">
+            <div className="flex items-center justify-between p-2 border border-accent/10 bg-theme-card/50 rounded-lg">
               <div>
                 <div className="font-bold text-text uppercase">Sound Synthesizer Effects</div>
-                <div className="text-[10px] text-slate-500">Audio feedback cues on command execution</div>
+                <div className="text-[10px] text-theme-muted">Audio feedback cues on command execution</div>
               </div>
               <input
                 type="checkbox"
                 checked={soundEnabled}
                 onChange={(e) => { setSoundEnabled(e.target.checked); playSound("click"); }}
-                className="w-4 h-4 text-primary bg-black border-cyan-500/30 rounded focus:ring-primary focus:ring-1"
+                className="w-4 h-4 text-primary bg-black border-accent/30 rounded focus:ring-primary focus:ring-1"
               />
             </div>
 
             {/* Dev Console */}
-            <div className="flex items-center justify-between p-2 border border-cyan-500/10 bg-[#050b14]/50 rounded-lg">
+            <div className="flex items-center justify-between p-2 border border-accent/10 bg-theme-card/50 rounded-lg">
               <div>
                 <div className="font-bold text-text uppercase">Matrix Debug Console</div>
-                <div className="text-[10px] text-slate-500">Show operational raw queries in console HUD</div>
+                <div className="text-[10px] text-theme-muted">Show operational raw queries in console HUD</div>
               </div>
               <input
                 type="checkbox"
                 checked={devConsoleMode}
                 onChange={(e) => { setDevConsoleMode(e.target.checked); playSound("click"); }}
-                className="w-4 h-4 text-primary bg-black border-cyan-500/30 rounded focus:ring-primary focus:ring-1"
+                className="w-4 h-4 text-primary bg-black border-accent/30 rounded focus:ring-primary focus:ring-1"
               />
             </div>
           </div>
@@ -124,20 +124,20 @@ export const Settings: React.FC = () => {
         {/* Telemetry settings */}
         <div className="space-y-6">
           <CyberCard variant="secondary" className="space-y-4">
-            <h2 className="text-sm font-mono font-bold tracking-widest text-secondary uppercase border-b border-purple-500/25 pb-2">
+            <h2 className="text-sm font-sans font-bold tracking-widest text-secondary uppercase border-b border-secondary/25 pb-2">
               Telemetry Synchronizations
             </h2>
 
-            <div className="space-y-4 font-mono text-xs">
+            <div className="space-y-4 font-sans text-xs">
               {/* Refresh rate */}
               <div className="space-y-1">
-                <label className="block text-[10px] text-slate-400 uppercase font-bold tracking-wider">
-                  Sync Telemetry Interval
-                </label>
+              <label className="block text-[10px] text-theme-muted uppercase font-bold tracking-wider">
+                Sync Telemetry Interval
+              </label>
                 <select
                   value={refreshInterval}
                   onChange={(e) => { setRefreshInterval(Number(e.target.value)); playSound("click"); }}
-                  className="w-full px-3 py-2 bg-[#050b14] border border-purple-500/20 text-[#E2E8F0] text-xs focus:outline-none focus:border-secondary rounded-lg transition-all"
+                  className="w-full px-3 py-2 bg-theme-card border border-secondary/20 text-text text-xs focus:outline-none focus:border-secondary rounded-lg transition-all"
                 >
                   <option value={10}>10 Seconds (High Load)</option>
                   <option value={30}>30 Seconds (Default)</option>
@@ -149,11 +149,11 @@ export const Settings: React.FC = () => {
           </CyberCard>
 
           <CyberCard variant="secondary" className="space-y-4">
-            <h2 className="text-sm font-mono font-bold tracking-widest text-[#FF4D6D] uppercase border-b border-rose-500/25 pb-2">
+            <h2 className="text-sm font-sans font-bold tracking-widest text-danger uppercase border-b border-danger/25 pb-2">
               Emergency Override Protocols
             </h2>
-            <div className="space-y-3 font-mono text-xs">
-              <p className="text-[10px] text-slate-400">
+            <div className="space-y-3 font-sans text-xs">
+              <p className="text-[10px] text-theme-muted">
                 Purge all custom layout indexes, dashboard widgets, and user mappings currently cached on this terminal node.
               </p>
               <button
@@ -173,13 +173,13 @@ export const Settings: React.FC = () => {
 
       <div className="flex justify-end pt-4">
         <CyberButton onClick={handleSaveSettings} variant="primary" className="px-8">
-          Apply & Save HUD Settings
+          Apply and Save HUD Settings
         </CyberButton>
       </div>
 
       <CyberModal isOpen={showPurgeModal} onClose={() => setShowPurgeModal(false)} title="CONFIRM PURGE">
         <div className="space-y-4">
-          <p className="text-xs text-slate-300">
+          <p className="text-xs text-theme-secondary">
             Type <span className="font-bold text-danger">CONFIRM</span> to purge all dashboard configurations.
           </p>
           <CyberInput

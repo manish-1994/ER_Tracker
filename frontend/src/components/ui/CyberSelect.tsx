@@ -32,7 +32,7 @@ export const CyberSelect: FC<CyberSelectProps> = ({
     );
   }, [options, search]);
   
-  return (
+return (
     <div className="space-y-1">
       {options.length > 0 && (
         <input
@@ -41,19 +41,19 @@ export const CyberSelect: FC<CyberSelectProps> = ({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           disabled={disabled}
-          className="w-full bg-[#0a0f1d]/85 text-text border border-cyan-500/30 rounded-lg px-4 py-2 font-mono text-sm placeholder-gray-500 focus:outline-none focus:border-primary focus:shadow-[0_0_15px_rgba(0,229,255,0.25)] mb-1"
+          className="w-full bg-[var(--surface)] text-[var(--text)] border border-secondary rounded-md px-3 py-2 font-sans text-sm placeholder-secondary focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/30 mb-1"
         />
       )}
       <select
         value={value}
         onChange={onChange}
         disabled={disabled}
-        className={`w-full bg-[#0a0f1d]/85 text-text border border-cyan-500/30 rounded-lg px-4 py-2.5 font-mono text-sm transition-all duration-300 focus:outline-none focus:border-primary focus:shadow-[0_0_15px_rgba(0,229,255,0.25)] focus:bg-[#070b14]/95 ${className}`}
+        className={`w-full bg-[var(--surface)] text-[var(--text)] border border-secondary rounded-md px-3 py-2 font-sans text-sm transition-all duration-150 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/30 ${className}`}
         {...rest}
       >
         <option value="" disabled>{options.length === 0 ? "No users available" : placeholder}</option>
         {filteredOptions.map(opt => (
-          <option key={opt.value} value={opt.value} className="font-mono">
+          <option key={opt.value} value={opt.value}>
             {opt.label}{opt.subtext ? ` (${opt.subtext})` : ""}
           </option>
         ))}

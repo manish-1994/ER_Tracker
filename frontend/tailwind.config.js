@@ -15,19 +15,53 @@ module.exports = {
     },
     extend: {
       colors: {
-        primary: "#00E5FF",
-        secondary: "#8B5CF6",
-        success: "#00FF9D",
-        warning: "#FFB800",
-        danger: "#FF4D6D",
-        cyberBg: "#020617",
-        cyberCard: "rgba(8,15,30,0.85)",
-        cyberBorder: "rgba(0,229,255,0.20)",
-        text: "#E2E8F0",
-        muted: "#94A3B8",
+        // Core palette
+        primary: "var(--primary)",
+        secondary: "var(--secondary)",
+        accent: "var(--accent)",
+
+        // Backgrounds
+        bgPrimary: "var(--background)",
+        bgCard: "var(--surface)",
+        surface: "var(--surface)",
+        "surface-elevated": "var(--surface-elevated)",
+        "card-bg": "var(--card-background)",
+        "modal-bg": "var(--modal-background)",
+        "sidebar-bg": "var(--sidebar-background)",
+        "header-bg": "var(--header-background)",
+
+        // Text
+        textPrimary: "var(--text)",
+        textSecondary: "var(--text-secondary)",
+        "text-muted": "var(--text-muted)",
+
+        // Borders
+        border: "var(--border)",
+        "border-strong": "var(--border-strong)",
+
+        // Semantic
+        success: "var(--success)",
+        warning: "var(--warning)",
+        danger: "var(--danger)",
+        info: "var(--info)",
+
+        // Interactive states
+        "hover-bg": "var(--hover-bg)",
+        "selected-bg": "var(--selected-bg)",
       },
-      backdropBlur: {
-        xs: "2px",
+      boxShadow: {
+        glass: "0 2px 8px var(--shadow-color), 0 1px 3px rgba(0,0,0,0.03)",
+        "glass-sm": "0 1px 3px var(--shadow-color), 0 1px 2px rgba(0,0,0,0.04)",
+        "glass-lg": "0 10px 40px var(--shadow-color), 0 2px 8px var(--shadow-color)",
+        "glass-xl": "0 20px 60px var(--shadow-color), 0 4px 12px var(--shadow-color)",
+        card: "0 2px 8px color-mix(in srgb, var(--secondary) 12%, transparent)",
+        "card-hover": "0 4px 12px color-mix(in srgb, var(--secondary) 15%, transparent)",
+        theme: "0 2px 8px var(--shadow-color), 0 1px 3px rgba(0,0,0,0.04)",
+        "theme-lg": "0 10px 40px var(--shadow-color), 0 2px 8px var(--shadow-color)",
+      },
+      borderRadius: {
+        glass: "14px",
+        "glass-lg": "18px",
       },
     },
   },

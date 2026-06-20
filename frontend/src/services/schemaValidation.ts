@@ -4,14 +4,10 @@ const REQUIRED_TABLES = [
   "users",
   "roles", 
   "user_roles",
-  "permission_requests",
   "workbooks",
   "sheets",
-  "worksheet_rows",
-  "column_metadata",
-  "workspace_assignments",
-  "workspace_notes",
-  "audit_logs"
+  "columns",
+  "workspace_assignments"
 ];
 
 export const validateSchema = async () => {

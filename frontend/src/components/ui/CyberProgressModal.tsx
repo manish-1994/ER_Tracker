@@ -66,26 +66,21 @@ export const CyberProgressModal: React.FC<ImportProgressProps> = ({
       {isOpen && (
         <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
           <motion.div
-            className="absolute inset-0 bg-[#020617]/90 backdrop-blur-md"
+            className="absolute inset-0 bg-black/20 backdrop-blur-sm"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           />
           
           <motion.div
-            className="relative bg-[#0F172A] border border-primary/40 rounded-xl max-w-md w-full p-6 shadow-[0_0_30px_rgba(0,229,255,0.3)] z-10 font-mono"
+            className="relative glass-panel-strong border border-secondary/20 rounded-lg max-w-md w-full p-6 shadow-glass-xl z-10 font-sans"
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
           >
-            <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-primary" />
-            <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-primary" />
-            <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-primary" />
-            <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-primary" />
-            
             <div className="flex items-center gap-3 mb-4">
               <span className="text-2xl">{getStepIcon(step)}</span>
-              <h2 className="text-lg font-bold uppercase text-primary tracking-wider">
+              <h2 className="text-lg font-semibold text-textPrimary tracking-tight">
                 Workbook Import Progress
               </h2>
             </div>
@@ -93,13 +88,13 @@ export const CyberProgressModal: React.FC<ImportProgressProps> = ({
             <div className="space-y-4">
               <div>
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-[10px] text-slate-400 uppercase">Step Status</span>
-                  <span className="text-[10px] text-primary font-bold">{step}</span>
+                  <span className="text-[10px] text-textSecondary uppercase tracking-wider">Step Status</span>
+                  <span className="text-[10px] text-primary font-semibold">{step}</span>
                 </div>
                 
-                <div className="w-full h-3 bg-[#0a0f1d] rounded-full overflow-hidden border border-cyan-500/20">
+                <div className="w-full h-2 bg-secondary/10 rounded-full overflow-hidden border border-secondary/20">
                   <motion.div
-                    className="h-full bg-gradient-to-r from-primary to-cyan-400 shadow-[0_0_10px_rgba(0,229,255,0.5)]"
+                    className="h-full bg-gradient-to-r from-primary to-accent"
                     initial={{ width: 0 }}
                     animate={{ width: `${progress}%` }}
                     transition={{ duration: 0.3 }}
@@ -107,24 +102,24 @@ export const CyberProgressModal: React.FC<ImportProgressProps> = ({
                 </div>
                 
                 <div className="flex justify-between mt-1 text-[10px]">
-                  <span className="text-slate-500">{progress}% Complete</span>
-                  <span className="text-cyan-400">{estimatedTimeLeft}</span>
+                  <span className="text-textSecondary">{progress}% Complete</span>
+                  <span className="text-primary">{estimatedTimeLeft}</span>
                 </div>
               </div>
 
               {(currentSheet || sheetsProcessed) && (
-                <div className="p-3 bg-[#0a0f1d]/50 border border-cyan-500/10 rounded">
-                  <div className="text-[10px] text-slate-400 uppercase mb-1">Currently Processing</div>
+                <div className="p-3 glass-panel-light border border-secondary/20 rounded-lg">
+                  <div className="text-[10px] text-textSecondary uppercase mb-1 tracking-wider">Currently Processing</div>
                   {currentSheet && (
-                    <div className="text-sm text-primary font-bold">{currentSheet}</div>
+                    <div className="text-sm text-primary font-semibold">{currentSheet}</div>
                   )}
                   {totalSheets && sheetsProcessed && (
-                    <div className="text-[10px] text-slate-300 mt-1">
+                    <div className="text-[10px] text-textSecondary mt-1">
                       Sheet {sheetsProcessed} of {totalSheets}
                     </div>
                   )}
                   {currentRow !== undefined && totalRows !== undefined && totalRows > 0 && (
-                    <div className="text-[10px] text-slate-300 mt-1">
+                    <div className="text-[10px] text-textSecondary mt-1">
                       Row {currentRow} of {totalRows}
                     </div>
                   )}
@@ -133,13 +128,13 @@ export const CyberProgressModal: React.FC<ImportProgressProps> = ({
 
               {elapsedTime !== undefined && progress > 0 && (
                 <div className="grid grid-cols-2 gap-2 text-[10px]">
-                  <div className="p-2 border border-cyan-500/10 rounded">
-                    <span className="text-slate-500">Elapsed:</span>
-                    <span className="ml-2 text-primary font-bold">{formatTime(elapsedTime)}</span>
+                  <div className="p-2 border border-secondary/20 rounded-lg">
+                    <span className="text-textSecondary">Elapsed:</span>
+                    <span className="ml-2 text-primary font-semibold">{formatTime(elapsedTime)}</span>
                   </div>
-                  <div className="p-2 border border-cyan-500/10 rounded">
-                    <span className="text-slate-500">Rate:</span>
-                    <span className="ml-2 text-success font-bold">
+                  <div className="p-2 border border-secondary/20 rounded-lg">
+                    <span className="text-textSecondary">Rate:</span>
+                    <span className="ml-2 text-success font-semibold">
                       {progress > 0 && elapsedTime > 0 ? `${Math.round((progress / elapsedTime) * 10) / 10}%/s` : "-"}
                     </span>
                   </div>

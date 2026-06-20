@@ -3,11 +3,11 @@
 
 -- 1. Create table
 CREATE TABLE IF NOT EXISTS public.user_presence (
-    user_id BIGINT PRIMARY KEY REFERENCES public.users(id) ON DELETE CASCADE,
+    user_id TEXT PRIMARY KEY REFERENCES public.users(id) ON DELETE CASCADE,
     username TEXT NOT NULL,
     status TEXT NOT NULL CHECK (status IN ('online', 'idle', 'offline')),
     current_page TEXT,
-    current_workbook_id BIGINT REFERENCES public.workbooks(id) ON DELETE SET NULL,
+    current_workbook_id TEXT,
     session_start TIMESTAMPTZ DEFAULT NOW(),
     last_seen TIMESTAMPTZ DEFAULT NOW()
 );

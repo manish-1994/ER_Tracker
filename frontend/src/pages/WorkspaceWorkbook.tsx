@@ -98,7 +98,7 @@ const WorkspaceWorkbook: React.FC = () => {
           Available Sheets
         </h3>
         {worksheets.length === 0 ? (
-          <p className="text-slate-400 text-xs">No sheets found in this workbook.</p>
+          <p className="text-theme-muted text-xs">No sheets found in this workbook.</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {worksheets.map((ws) => {
@@ -106,13 +106,13 @@ const WorkspaceWorkbook: React.FC = () => {
               return (
                 <div
                   key={ws.id}
-                  className="p-4 border border-cyan-500/20 rounded bg-cyberCard/50 hover:bg-cyan-500/10 transition-all cursor-pointer"
+                  className="p-4 border border-accent/20 rounded bg-theme-card/50 hover:bg-accent/10 transition-all cursor-pointer"
                   onClick={() => handleSheetSelect(ws.id)}
                 >
-                  <div className="text-slate-200 font-mono text-sm font-bold truncate mb-2">
+                  <div className="text-theme font-mono text-sm font-bold truncate mb-2">
                     {ws.name}
                   </div>
-                  <div className="text-slate-400 text-xs space-y-1">
+                  <div className="text-theme-muted text-xs space-y-1">
                     <div>Records: {stats.row_count}</div>
                     <div>Columns: {stats.col_count}</div>
                     <div className="text-primary/60 truncate">Last: {ws.updated_at ? new Date(ws.updated_at).toLocaleDateString() : "Never"}</div>

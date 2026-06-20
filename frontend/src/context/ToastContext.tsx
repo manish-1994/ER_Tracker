@@ -50,36 +50,36 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           {toasts.map((t) => {
             const styles = {
               success: {
-                border: "border-[#00FF9D]/30",
+                border: "border-[var(--success)]/30",
                 shadow: "shadow-[0_0_15px_rgba(0,255,157,0.15)]",
-                text: "text-[#00FF9D]",
-                bg: "bg-[#04100c]/95",
-                progress: "bg-[#00FF9D]",
-                icon: <CheckCircle className="w-5 h-5 text-[#00FF9D] shrink-0" />
+                text: "text-[var(--success)]",
+                bg: "bg-[var(--card-background)]/95",
+                progress: "bg-[var(--success)]",
+                icon: <CheckCircle className="w-5 h-5 text-[var(--success)] shrink-0" />
               },
               error: {
-                border: "border-[#FF4D6D]/30",
+                border: "border-[var(--danger)]/30",
                 shadow: "shadow-[0_0_15px_rgba(255,77,109,0.15)]",
-                text: "text-[#FF4D6D]",
-                bg: "bg-[#14060b]/95",
-                progress: "bg-[#FF4D6D]",
-                icon: <XCircle className="w-5 h-5 text-[#FF4D6D] shrink-0" />
+                text: "text-[var(--danger)]",
+                bg: "bg-[var(--card-background)]/95",
+                progress: "bg-[var(--danger)]",
+                icon: <XCircle className="w-5 h-5 text-[var(--danger)] shrink-0" />
               },
               warning: {
-                border: "border-[#FFB800]/30",
+                border: "border-[var(--warning)]/30",
                 shadow: "shadow-[0_0_15px_rgba(255,184,0,0.15)]",
-                text: "text-[#FFB800]",
-                bg: "bg-[#140f04]/95",
-                progress: "bg-[#FFB800]",
-                icon: <AlertTriangle className="w-5 h-5 text-[#FFB800] shrink-0" />
+                text: "text-[var(--warning)]",
+                bg: "bg-[var(--card-background)]/95",
+                progress: "bg-[var(--warning)]",
+                icon: <AlertTriangle className="w-5 h-5 text-[var(--warning)] shrink-0" />
               },
               info: {
-                border: "border-[#00E5FF]/30",
+                border: "border-[var(--info)]/30",
                 shadow: "shadow-[0_0_15px_rgba(0,229,255,0.15)]",
-                text: "text-[#00E5FF]",
-                bg: "bg-[#040f14]/95",
-                progress: "bg-[#00E5FF]",
-                icon: <InfoIcon className="w-5 h-5 text-[#00E5FF] shrink-0" />
+                text: "text-[var(--info)]",
+                bg: "bg-[var(--card-background)]/95",
+                progress: "bg-[var(--info)]",
+                icon: <InfoIcon className="w-5 h-5 text-[var(--info)] shrink-0" />
               }
             }[t.type];
 
@@ -93,22 +93,22 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
                 className={`pointer-events-auto backdrop-blur-md border rounded-xl p-4 flex items-start gap-3 relative overflow-hidden select-none font-mono min-h-[64px] w-80 text-xs tracking-wider uppercase font-bold text-white ${styles.border} ${styles.shadow} ${styles.bg}`}
               >
                 {/* Visual Corner Bracket Decoration for Cyberpunk Feel */}
-                <div className={`absolute top-0 left-0 w-1.5 h-1.5 border-t border-l ${t.type === 'success' ? 'border-[#00FF9D]' : t.type === 'error' ? 'border-[#FF4D6D]' : t.type === 'warning' ? 'border-[#FFB800]' : 'border-[#00E5FF]'}`} />
-                <div className={`absolute bottom-0 right-0 w-1.5 h-1.5 border-b border-r ${t.type === 'success' ? 'border-[#00FF9D]' : t.type === 'error' ? 'border-[#FF4D6D]' : t.type === 'warning' ? 'border-[#FFB800]' : 'border-[#00E5FF]'}`} />
+                <div className={`absolute top-0 left-0 w-1.5 h-1.5 border-t border-l ${t.type === 'success' ? 'border-[var(--success)]' : t.type === 'error' ? 'border-[var(--danger)]' : t.type === 'warning' ? 'border-[var(--warning)]' : 'border-[var(--info)]'}`} />
+                <div className={`absolute bottom-0 right-0 w-1.5 h-1.5 border-b border-r ${t.type === 'success' ? 'border-[var(--success)]' : t.type === 'error' ? 'border-[var(--danger)]' : t.type === 'warning' ? 'border-[var(--warning)]' : 'border-[var(--info)]'}`} />
 
                 {styles.icon}
                 <div className="flex-1 pr-4">
                   <div className={`font-black text-[10px] mb-0.5 tracking-widest ${styles.text}`}>
                     {t.type.toUpperCase()} SIGNAL
                   </div>
-                  <div className="text-[11px] font-mono leading-relaxed text-[#E2E8F0] normal-case">
+                  <div className="text-[11px] font-mono leading-relaxed text-theme normal-case">
                     {t.message}
                   </div>
                 </div>
 
                 <button
                   onClick={() => dismissToast(t.id)}
-                  className="text-slate-500 hover:text-white transition shrink-0 self-start mt-0.5"
+                  className="text-theme-muted hover:text-[var(--text)] transition shrink-0 self-start mt-0.5"
                 >
                   <X className="w-4 h-4" />
                 </button>

@@ -83,7 +83,8 @@ export const SHEET_TO_RECORD_TABLE: Record<string, string> = {
   "137": "records_cff7af7ed0394995a732cccabc486fbd",
   "138": "records_86cff3dade0e4ded9fbc557537b39019",
   "140": "records_e34e3cc1f2c048498d4282392164466f",
-  "141": "records_66b58351b75a4f0497478590cc12f7da"
+  "141": "records_66b58351b75a4f0497478590cc12f7da",
+  "148": "records_66b58351b75a4f0497478590cc12f7da"
 };
 
 const KNOWN_RECORDS_TABLES = Object.values(SHEET_TO_RECORD_TABLE);
@@ -95,33 +96,6 @@ export const resolveRecordTable = async (sheetId: string): Promise<string> => {
     return cached;
   }
 
-  try {
-    const { data: sheet, error } = await supabase
-      .from("sheets")
-      .select("id, records_table_name")
-      .eq("id", sheetId)
-      .single();
-      
-    if (!error && sheet && sheet.records_table_name) {
-      const actualTableName = sheet.records_table_name;
-      localStorage.setItem(cacheKey, actualTableName);
-      return actualTableName;
-    }
-  } catch {
-    // ignore
-  }
-
-  const saveToDatabase = async (tableName: string) => {
-    try {
-      await supabase
-        .from("sheets")
-        .update({ records_table_name: tableName })
-        .eq("id", sheetId);
-    } catch {
-      // ignore
-    }
-  };
-
   const { data: cols, error: colsErr } = await supabase
     .from("columns")
     .select("name")
@@ -131,7 +105,6 @@ export const resolveRecordTable = async (sheetId: string): Promise<string> => {
     if (SHEET_TO_RECORD_TABLE[sheetId]) {
       const actualTableName = SHEET_TO_RECORD_TABLE[sheetId];
       localStorage.setItem(cacheKey, actualTableName);
-      await saveToDatabase(actualTableName);
       return actualTableName;
     }
     return `records_${sheetId}`;
@@ -172,13 +145,11 @@ export const resolveRecordTable = async (sheetId: string): Promise<string> => {
 
   if (bestTable) {
     localStorage.setItem(cacheKey, bestTable);
-    await saveToDatabase(bestTable);
     return bestTable;
   }
 
   if (SHEET_TO_RECORD_TABLE[sheetId]) {
     const actualTableName = SHEET_TO_RECORD_TABLE[sheetId];
-    await saveToDatabase(actualTableName);
     return actualTableName;
   }
 

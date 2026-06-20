@@ -12,11 +12,11 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
   const username = appUser?.username || "Unknown";
 
   return (
-    <header className="h-16 px-6 md:px-8 flex items-center justify-between bg-[#050b14]/75 backdrop-blur-md border-b border-cyan-500/20 sticky top-0 z-30 font-mono">
+    <header className="h-16 px-6 md:px-8 flex items-center justify-between glass-panel border-b border-secondary/20 sticky top-0 z-30 font-sans">
       {onMenuToggle ? (
         <button
           onClick={onMenuToggle}
-          className="md:hidden p-2 border border-cyan-500/20 rounded bg-[#0a0f1d]/60 text-primary hover:text-white"
+          className="md:hidden p-2 border border-secondary/20 rounded-md bg-[var(--surface)]/80 text-textSecondary hover:text-textPrimary"
           aria-label="Toggle Navigation Menu"
         >
           <Menu className="w-5 h-5" />
@@ -25,9 +25,9 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
         <div className="md:hidden" />
       )}
 
-      <div className="flex items-center gap-3 bg-[#0a0f1d]/60 border border-cyan-500/10 px-4 py-1.5 rounded-lg shadow-[inset_0_0_10px_rgba(0,0,0,0.5)] ml-auto">
+      <div className="flex items-center gap-3 glass-panel-light px-4 py-1.5 rounded-md ml-auto">
         <CyberAvatar username={username} size="sm" isOnline={true} />
-        <span className="text-primary font-bold uppercase tracking-widest text-xs neon-text-primary font-mono">
+        <span className="text-textPrimary font-semibold text-xs">
           {username}
         </span>
       </div>

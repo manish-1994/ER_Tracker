@@ -22,6 +22,8 @@ import UserPresence from "./pages/UserPresence";
 import MainLayout from "./layouts/MainLayout";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
+import { ThemeProvider } from "./context/ThemeContext";
+import ThemeStudio from "./pages/ThemeStudio";
 import { SettingsProvider } from "./context/SettingsContext";
 import RootRedirect from "./components/RootRedirect";
 
@@ -29,7 +31,8 @@ const App: React.FC = () => {
   return (
     <ToastProvider>
       <AuthProvider>
-        <SettingsProvider>
+        <ThemeProvider>
+          <SettingsProvider>
             <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
@@ -88,6 +91,14 @@ const App: React.FC = () => {
                 }
               />
               <Route
+                path="workbooks/:workbookId/sheets/:sheetId/records/:recordId"
+                element={
+                  <ProtectedRoute requiredPermission={{ module: "Worksheets", action: "view" }}>
+                    <Worksheet />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="workbooks/:id"
                 element={
                   <ProtectedRoute requiredPermission={{ module: "Workbooks", action: "view" }}>
@@ -112,6 +123,14 @@ const App: React.FC = () => {
                 }
               />
               <Route path="profile" element={<Profile />} />
+               <Route
+                 path="theme-studio"
+                 element={
+                   <ProtectedRoute allowedRoles={["Admin", "SuperAdmin"]}>
+                     <ThemeStudio />
+                   </ProtectedRoute>
+                 }
+               />
               <Route
                 path="audit-history"
                 element={
@@ -139,7 +158,8 @@ const App: React.FC = () => {
 <Route path="logout" element={<Logout />} />
             </Route>
           </Routes>
-        </SettingsProvider>
+          </SettingsProvider>
+        </ThemeProvider>
       </AuthProvider>
     </ToastProvider>
   );

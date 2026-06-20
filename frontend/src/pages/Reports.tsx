@@ -91,9 +91,9 @@ export const Reports: React.FC = () => {
         {/* Main List Area */}
         <div className="lg:col-span-2 space-y-6">
           <CyberCard className="space-y-4">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-cyan-500/20 pb-4">
-              <h2 className="text-sm font-mono font-bold tracking-widest text-primary uppercase">
-                System Ingestion History
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-accent/20 pb-4">
+              <h2 className="text-sm font-sans font-bold tracking-widest text-primary uppercase">
+                Ingestion History
               </h2>
               <div className="w-full sm:w-64">
                 <CyberInput
@@ -110,29 +110,29 @@ export const Reports: React.FC = () => {
                 Accessing remote telemetry logs...
               </div>
             ) : filteredWorkbooks.length === 0 ? (
-              <div className="py-12 text-center text-xs font-mono text-muted border border-dashed border-cyan-500/10 rounded-xl">
-                No telemetry matching search query discovered.
+              <div className="py-12 text-center text-xs font-sans text-muted border border-dashed border-accent/10 rounded-xl">
+                No results matching search query.
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left font-mono text-xs border-collapse">
                   <thead>
-                    <tr className="border-b border-cyan-500/20 text-primary uppercase">
-                      <th className="py-3 px-2">Log ID</th>
-                      <th className="py-3 px-2">Workbook Source</th>
-                      <th className="py-3 px-2">Uploaded At</th>
-                      <th className="py-3 px-2 text-right">Clearance State</th>
+                    <tr className="border-b border-accent/20 text-primary uppercase">
+                      <th className="py-3 px-2">ID</th>
+                      <th className="py-3 px-2">Workbook</th>
+                      <th className="py-3 px-2">Uploaded</th>
+                      <th className="py-3 px-2 text-right">Status</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredWorkbooks.map((wb) => (
                       <tr
                         key={wb.id}
-                        className="border-b border-cyan-500/5 hover:bg-primary/5 transition-colors"
+                        className="border-b border-accent/5 hover:bg-primary/5 transition-colors"
                       >
                         <td className="py-3 px-2 text-muted">#{wb.id}</td>
                         <td className="py-3 px-2 font-bold text-text">{wb.name}</td>
-                        <td className="py-3 px-2 text-slate-400">
+                        <td className="py-3 px-2 text-theme-muted">
                           {new Date(wb.uploaded_at).toLocaleString()}
                         </td>
                         <td className="py-3 px-2 text-right">
@@ -152,29 +152,29 @@ export const Reports: React.FC = () => {
         {/* Charts & Diagnostics sidebar */}
         <div className="lg:col-span-1 space-y-6">
           <CyberCard variant="secondary" className="space-y-4">
-            <h2 className="text-sm font-mono font-bold tracking-widest text-secondary uppercase border-b border-purple-500/25 pb-2">
-              Ingestion Quality Metrics
+            <h2 className="text-sm font-sans font-bold tracking-widest text-secondary uppercase border-b border-secondary/25 pb-2">
+              Quality Metrics
             </h2>
-            <div className="h-48">
+            <div className="w-full" style={{ minHeight: 200 }}>
               {chartData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height={200}>
                   <BarChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#0a0f1d" />
-                    <XAxis dataKey="name" stroke="#94a3b8" fontSize={9} />
-                    <YAxis stroke="#94a3b8" fontSize={9} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--card-background)" />
+                    <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={9} />
+                    <YAxis stroke="var(--text-muted)" fontSize={9} />
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: "#080f1e",
-                        borderColor: "#D500F9",
-                        color: "#fff",
+                        backgroundColor: "var(--card-background)",
+                        borderColor: "var(--info)",
+                        color: "var(--text)",
                         fontSize: 10,
                       }}
                     />
-                    <Bar dataKey="count" fill="#D500F9" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="count" fill="var(--info)" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="h-full flex items-center justify-center text-xs font-mono text-muted">
+                <div className="flex items-center justify-center text-xs font-mono text-muted" style={{ height: 200 }}>
                   Awaiting operational statistics...
                 </div>
               )}
@@ -182,14 +182,14 @@ export const Reports: React.FC = () => {
           </CyberCard>
 
           <CyberCard className="space-y-4">
-            <h2 className="text-sm font-mono font-bold tracking-widest text-primary uppercase border-b border-cyan-500/25 pb-2">
-              Console Diagnostics
+            <h2 className="text-sm font-sans font-bold tracking-widest text-primary uppercase border-b border-accent/25 pb-2">
+              System Status
             </h2>
-            <div className="space-y-2 text-[10px] font-mono text-success bg-[#050b14]/75 p-3 rounded-lg border border-cyan-500/10">
-              <div>[SYSTEM] INITIALIZING LOG QUERY PROTOCOL...</div>
-              <div>[SYSTEM] METADATA TABLE DESCRIPTIONS RESOLVED</div>
-              <div>[DATABASE] ESTABLISHED SECURE POSTGREST TELEMETRY</div>
-              <div className="animate-pulse">[ONLINE] RETRIEVED ALL RECENT TELEMETRY RECORDS</div>
+            <div className="space-y-2 text-[10px] font-sans text-success bg-theme-card/75 p-3 rounded-lg border border-accent/10">
+              <div>System initialized</div>
+              <div>Metadata tables resolved</div>
+              <div>Database connection established</div>
+              <div className="animate-pulse">All telemetry records retrieved</div>
             </div>
           </CyberCard>
         </div>

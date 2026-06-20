@@ -69,13 +69,13 @@ export const AuditHistory: React.FC = () => {
         {/* Controls Deck */}
         <div className="lg:col-span-1 space-y-6">
           <CyberCard className="space-y-4">
-            <h2 className="text-sm font-mono font-bold tracking-widest text-primary uppercase border-b border-cyan-500/25 pb-2">
+            <h2 className="text-sm font-sans font-bold tracking-widest text-primary uppercase border-b border-accent/25 pb-2">
               Log Search Filters
             </h2>
             
-            <div className="space-y-4 font-mono text-xs">
+            <div className="space-y-4 font-sans text-xs">
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Search Logs</label>
+                <label className="text-[10px] text-theme-muted uppercase font-bold tracking-wider">Search Logs</label>
                 <CyberInput
                   type="text"
                   placeholder="Search metadata, IDs..."
@@ -85,11 +85,11 @@ export const AuditHistory: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Action Type</label>
+                <label className="text-[10px] text-theme-muted uppercase font-bold tracking-wider">Action Type</label>
                 <select
                   value={actionFilter}
                   onChange={(e) => setActionFilter(e.target.value)}
-                  className="w-full px-3 py-2 bg-[#050b14] border border-cyan-500/20 text-[#E2E8F0] text-xs focus:outline-none focus:border-primary rounded-lg transition-all"
+                  className="w-full px-3 py-2 bg-theme-card border border-accent/20 text-text text-xs focus:outline-none focus:border-primary rounded-lg transition-all"
                 >
                   <option value="all">ALL TELEMETRY ACTIONS</option>
                   <option value="login">OPERATOR LOGINS</option>
@@ -102,7 +102,7 @@ export const AuditHistory: React.FC = () => {
             </div>
           </CyberCard>
 
-          <CyberCard variant="secondary" className="hidden lg:block space-y-3 font-mono text-[10px] text-slate-500">
+          <CyberCard variant="secondary" className="hidden lg:block space-y-3 font-sans text-[10px] text-theme-muted">
             <div>[STATUS] SECURITY TELEMETRY ONLINE</div>
             <div>[TRAILS] MAPPED LOCALLY AND SYNCED WITH SUPABASE</div>
             <div>[OPERATOR] SUPERADMIN PRIVILEGES INITIATED</div>
@@ -112,23 +112,23 @@ export const AuditHistory: React.FC = () => {
         {/* Audit Log Table */}
         <div className="lg:col-span-3">
           <CyberCard className="space-y-4">
-            <h2 className="text-sm font-mono font-bold tracking-widest text-primary uppercase border-b border-cyan-500/25 pb-2">
+            <h2 className="text-sm font-sans font-bold tracking-widest text-primary uppercase border-b border-accent/25 pb-2">
               Audit Trails Feed
             </h2>
 
             {isLoading ? (
-              <div className="py-12 text-center text-xs font-mono text-muted animate-pulse">
+              <div className="py-12 text-center text-xs font-sans text-muted animate-pulse">
                 Decrypting remote audit structures...
               </div>
             ) : filteredLogs.length === 0 ? (
-              <div className="py-12 text-center text-xs font-mono text-muted border border-dashed border-cyan-500/10 rounded-xl">
+              <div className="py-12 text-center text-xs font-sans text-muted border border-dashed border-accent/10 rounded-xl">
                 No audited actions detected in the logging index.
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left font-mono text-xs border-collapse">
                   <thead>
-                    <tr className="border-b border-cyan-500/20 text-primary uppercase text-[10px]">
+                    <tr className="border-b border-accent/20 text-primary uppercase text-[10px]">
                       <th className="py-3 px-2">Timestamp</th>
                       <th className="py-3 px-2">Operator ID</th>
                       <th className="py-3 px-2">Action</th>
@@ -139,9 +139,9 @@ export const AuditHistory: React.FC = () => {
                     {filteredLogs.map((log) => (
                       <tr
                         key={log.id}
-                        className="border-b border-cyan-500/5 hover:bg-cyan-500/5 transition-colors"
+                        className="border-b border-accent/5 hover:bg-accent/5 transition-colors"
                       >
-                        <td className="py-3 px-2 text-slate-400">
+                        <td className="py-3 px-2 text-theme-muted">
                           {new Date(log.timestamp).toLocaleString()}
                         </td>
                         <td className="py-3 px-2 font-bold text-text">
@@ -152,7 +152,7 @@ export const AuditHistory: React.FC = () => {
                             {log.action.toUpperCase()}
                           </CyberBadge>
                         </td>
-                        <td className="py-3 px-2 text-right text-slate-300 max-w-xs truncate">
+                        <td className="py-3 px-2 text-right text-theme-secondary max-w-xs truncate">
                           {log.payload?.new_value || log.payload?.old_value || JSON.stringify(log.payload)}
                         </td>
                       </tr>

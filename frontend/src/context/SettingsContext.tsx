@@ -37,9 +37,9 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
   const applyTheme = (accent: "cyan" | "purple" | "green") => {
     const root = document.documentElement;
     const colors = {
-      cyan: { primary: "#00E5FF", secondary: "#8B5CF6", success: "#00FF9D" },
-      purple: { primary: "#D500F9", secondary: "#00E5FF", success: "#00FF9D" },
-      green: { primary: "#00FF9D", secondary: "#00E5FF", success: "#00FF9D" },
+      cyan: { primary: "var(--info)", secondary: "var(--border)", success: "var(--success)" },
+      purple: { primary: "var(--secondary)", secondary: "var(--accent)", success: "var(--success)" },
+      green: { primary: "var(--info)", secondary: "var(--border)", success: "var(--success)" },
     };
     const c = colors[accent];
     root.style.setProperty("--color-primary", c.primary);

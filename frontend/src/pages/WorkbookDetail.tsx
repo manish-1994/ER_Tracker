@@ -100,7 +100,7 @@ const fetchWorkbook = async () => {
     return (
       <div className="space-y-6">
         <PageHeader title="Workbook Detail" subtitle={id || ""} />
-        <div className="p-10 text-center font-mono text-muted animate-pulse border border-[#00E5FF]/15 bg-black/40 rounded-xl">
+        <div className="p-10 text-center font-sans text-muted animate-pulse border border-accent/15 bg-black/40 rounded-xl">
           Retrieving workbook metadata...
         </div>
       </div>
@@ -112,7 +112,7 @@ const fetchWorkbook = async () => {
       <div className="space-y-6">
         <PageHeader title="Workbook Detail" subtitle={id || ""} />
         <CyberCard className="p-8 text-center border-danger/40">
-          <p className="text-danger font-mono mb-4">[CRITICAL ERROR]: Unable to load workbook data.</p>
+          <p className="text-danger font-sans mb-4">[CRITICAL ERROR]: Unable to load workbook data.</p>
         </CyberCard>
       </div>
     );
@@ -125,7 +125,7 @@ const fetchWorkbook = async () => {
       {/* Workbook Metadata Card */}
       <CyberCard variant="primary" className="space-y-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-md font-bold tracking-widest text-primary uppercase border-b border-cyan-500/25 pb-2">
+          <h2 className="text-md font-bold tracking-widest text-primary uppercase border-b border-accent/25 pb-2">
             Core Metadata
           </h2>
           <CyberButton onClick={openEditModal} variant="secondary" size="sm">
@@ -136,39 +136,39 @@ const fetchWorkbook = async () => {
           <div>
             <div className="space-y-3">
               <div>
-                <span className="text-slate-400 uppercase tracking-wider">Name:</span>
+                <span className="text-theme-muted uppercase tracking-wider">Name:</span>
                 <span className="ml-2 text-primary font-bold">{workbook.name}</span>
               </div>
               <div>
-                <span className="text-slate-400 uppercase tracking-wider">Description:</span>
-                <span className="ml-2 text-slate-300">{workbook.description || "No description provided"}</span>
+                <span className="text-theme-muted uppercase tracking-wider">Description:</span>
+                <span className="ml-2 text-theme-secondary">{workbook.description || "No description provided"}</span>
               </div>
               <div>
-                <span className="text-slate-400 uppercase tracking-wider">Owner ID:</span>
-                <span className="ml-2 text-slate-300 truncate" title={workbook.owner_id || ""}>
+                <span className="text-theme-muted uppercase tracking-wider">Owner ID:</span>
+                <span className="ml-2 text-theme-secondary truncate" title={workbook.owner_id || ""}>
                   {workbook.owner_id ? workbook.owner_id.substring(0, 8) + "..." : "-"}
                 </span>
               </div>
               <div>
-                <span className="text-slate-400 uppercase tracking-wider">Created:</span>
-                <span className="ml-2 text-slate-300">{formatDate(workbook.created_at)}</span>
+                <span className="text-theme-muted uppercase tracking-wider">Created:</span>
+                <span className="ml-2 text-theme-secondary">{formatDate(workbook.created_at)}</span>
               </div>
             </div>
           </div>
           
           <div>
-            <h2 className="text-md font-bold tracking-widest text-primary uppercase border-b border-cyan-500/25 pb-2 mb-4">
+            <h2 className="text-md font-bold tracking-widest text-primary uppercase border-b border-accent/25 pb-2 mb-4">
               Statistics
             </h2>
             <div className="space-y-3">
               <div className="flex items-center space-x-2">
-                <span className="text-slate-400 uppercase tracking-wider">Sheet Count:</span>
+                <span className="text-theme-muted uppercase tracking-wider">Sheet Count:</span>
                 <CyberBadge variant="success" className="text-lg px-3 py-1">
                   {worksheets?.length || 0}
                 </CyberBadge>
               </div>
               <div className="flex items-center space-x-2">
-                <span className="text-slate-400 uppercase tracking-wider">Total Rows:</span>
+                <span className="text-theme-muted uppercase tracking-wider">Total Rows:</span>
                 <CyberBadge variant="primary" className="text-lg px-3 py-1">
                   {totalRows || 0}
                 </CyberBadge>
@@ -178,7 +178,7 @@ const fetchWorkbook = async () => {
         </div>
         
         {/* Tags Section */}
-        <div className="border-t border-cyan-500/20 pt-4 mt-4">
+        <div className="border-t border-accent/20 pt-4 mt-4">
           <h3 className="text-xs font-bold tracking-widest text-primary uppercase mb-2">Tags</h3>
           <div className="flex flex-wrap gap-2">
             {workbook.tags && workbook.tags.length > 0 ? (
@@ -188,7 +188,7 @@ const fetchWorkbook = async () => {
                 </CyberBadge>
               ))
             ) : (
-              <span className="text-slate-500 text-xs">No tags assigned</span>
+              <span className="text-theme-muted text-xs">No tags assigned</span>
             )}
           </div>
         </div>
@@ -196,7 +196,7 @@ const fetchWorkbook = async () => {
 
       {/* Edit Metadata Modal */}
       <CyberModal isOpen={isEditOpen} onClose={closeEditModal} title="Edit Workbook Metadata">
-        <div className="space-y-4 font-mono text-xs">
+        <div className="space-y-4 font-sans text-xs">
           <div className="space-y-1">
             <label className="block font-bold text-primary uppercase tracking-wider text-[10px]">
               Workbook Name
@@ -230,7 +230,7 @@ const fetchWorkbook = async () => {
               onChange={(e) => setEditTags(e.target.value)}
             />
           </div>
-          <div className="flex justify-end gap-3 pt-4 border-t border-cyan-500/10">
+          <div className="flex justify-end gap-3 pt-4 border-t border-accent/10">
             <CyberButton type="button" onClick={closeEditModal} variant="secondary">
               Cancel
             </CyberButton>

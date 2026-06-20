@@ -69,8 +69,8 @@ const UserPresence: React.FC = () => {
   };
 
   // Map user ID to User Roles
-  const getUserRoleString = (userId: number): string => {
-    const found = users.find(u => Number(u.id) === Number(userId));
+  const getUserRoleString = (userId: string): string => {
+    const found = users.find(u => String(u.id) === String(userId));
     if (!found || !found.roles || found.roles.length === 0) return "Viewer";
     return found.roles.map((r: any) => typeof r === "object" ? r.name : r).join(", ");
   };
@@ -126,22 +126,22 @@ const UserPresence: React.FC = () => {
   const getStatusBadge = (status: "online" | "idle" | "offline") => {
     if (status === "online") {
       return (
-        <span className="flex items-center gap-1.5 text-xs text-success font-bold font-mono">
-          <span className="w-2 h-2 rounded-full bg-success animate-pulse shadow-[0_0_8px_#00FF9D]" />
+        <span className="flex items-center gap-1.5 text-xs text-success font-bold font-sans">
+          <span className="w-2 h-2 rounded-full bg-success" />
           ONLINE
         </span>
       );
     }
     if (status === "idle") {
       return (
-        <span className="flex items-center gap-1.5 text-xs text-warning font-bold font-mono">
-          <span className="w-2 h-2 rounded-full bg-warning animate-pulse shadow-[0_0_8px_#FFB800]" />
+        <span className="flex items-center gap-1.5 text-xs text-warning font-bold font-sans">
+          <span className="w-2 h-2 rounded-full bg-warning" />
           IDLE
         </span>
       );
     }
     return (
-      <span className="flex items-center gap-1.5 text-xs text-danger font-bold font-mono">
+      <span className="flex items-center gap-1.5 text-xs text-danger font-bold font-sans">
         <span className="w-2 h-2 rounded-full bg-danger opacity-60" />
         OFFLINE
       </span>
@@ -162,17 +162,17 @@ const UserPresence: React.FC = () => {
     <div className="space-y-6">
       {/* Title Header */}
       <div>
-        <h1 className="text-3xl font-mono font-black tracking-wider text-primary uppercase neon-text-primary">
-          User Presence Telemetry
+        <h1 className="text-3xl font-sans font-black tracking-wider text-primary uppercase">
+          User Presence
         </h1>
-        <p className="text-muted font-mono text-sm">
-          Realtime console of active operator connections and worksheet nodes telemetry
+        <p className="text-muted font-sans text-sm">
+          View active user connections and session information
         </p>
       </div>
 
       {isLoading ? (
-        <div className="p-10 text-center font-mono text-muted animate-pulse border border-cyan-500/15 bg-black/40 rounded-xl">
-          Retrieving live operator connections and session streams...
+        <div className="p-10 text-center font-sans text-muted animate-pulse border border-accent/15 bg-black/40 rounded-xl">
+          Loading presence data...
         </div>
       ) : (
         <>
@@ -182,54 +182,54 @@ const UserPresence: React.FC = () => {
               title="Online Operators"
               value={onlineUsers.length}
               variant="success"
-              icon={<Users className="w-5 h-5 text-success shadow-[0_0_10px_#00FF9D]" />}
+              icon={<Users className="w-5 h-5 text-success" />}
             />
             <CyberStatCard
               title="Idle Connections"
               value={idleUsers.length}
               variant="warning"
-              icon={<Activity className="w-5 h-5 text-warning shadow-[0_0_10px_#FFB800]" />}
+              icon={<Activity className="w-5 h-5 text-warning" />}
             />
             <CyberStatCard
               title="Offline Registry"
               value={offlineUsers.length}
               variant="danger"
-              icon={<UserMinus className="w-5 h-5 text-danger shadow-[0_0_10px_#FF4D6D]" />}
+              icon={<UserMinus className="w-5 h-5 text-danger" />}
             />
             <CyberStatCard
               title="Active Workbooks"
               value={activeWorkbookIds.size}
               variant="primary"
-              icon={<BookOpen className="w-5 h-5 text-primary shadow-[0_0_10px_#00E5FF]" />}
+              icon={<BookOpen className="w-5 h-5 text-primary" />}
             />
           </div>
 
           {/* User Activity List Section */}
           <div className="space-y-4">
-            <div className="flex items-center space-x-2 border-b border-cyan-500/20 pb-2">
+            <div className="flex items-center space-x-2 border-b border-accent/20 pb-2">
               <Monitor className="w-4 h-4 text-primary" />
-              <h2 className="text-sm font-mono font-bold tracking-widest text-primary uppercase">
-                Active Connections Registry
+              <h2 className="text-sm font-sans font-bold tracking-widest text-primary uppercase">
+                Active Connections
               </h2>
             </div>
 
             {/* Desktop Table View */}
-            <div className="hidden md:block overflow-hidden border border-cyan-500/15 rounded-xl bg-black/45">
+            <div className="hidden md:block overflow-hidden border border-accent/15 rounded-xl bg-black/45">
               <table className="w-full text-left border-collapse font-mono text-xs">
                 <thead>
-                  <tr className="border-b border-cyan-500/20 bg-cyberCard/80 text-primary uppercase">
-                    <th className="p-4">Operator Identification</th>
-                    <th className="p-4">Assigned Clearance</th>
-                    <th className="p-4">Telemetry Status</th>
-                    <th className="p-4">Current Node/Page</th>
-                    <th className="p-4">Active Workbook</th>
-                    <th className="p-4">Session Duration</th>
-                    <th className="p-4 text-right">Last Signal Ping</th>
+                  <tr className="border-b border-accent/20 bg-cyberCard/80 text-primary uppercase">
+                    <th className="p-4">User</th>
+                    <th className="p-4">Clearance</th>
+                    <th className="p-4">Status</th>
+                    <th className="p-4">Current Page</th>
+                    <th className="p-4">Workbook</th>
+                    <th className="p-4">Duration</th>
+                    <th className="p-4 text-right">Last Seen</th>
                   </tr>
                 </thead>
                 <tbody>
                   {activePresences.map((p) => (
-                    <tr key={p.user_id} className="border-b border-cyan-500/5 hover:bg-cyan-500/5 transition-colors">
+                    <tr key={p.user_id} className="border-b border-accent/5 hover:bg-accent/5 transition-colors">
                       <td className="p-4 font-bold text-text">{p.username}</td>
                       <td className="p-4">
                         <CyberBadge variant="secondary">
@@ -237,18 +237,18 @@ const UserPresence: React.FC = () => {
                         </CyberBadge>
                       </td>
                       <td className="p-4">{getStatusBadge(p.computedStatus)}</td>
-                      <td className="p-4 text-slate-300 flex items-center gap-1.5 pt-4">
-                        <Compass className="w-3.5 h-3.5 text-cyan-500/60" />
+                      <td className="p-4 text-theme-secondary flex items-center gap-1.5 pt-4">
+                        <Compass className="w-3.5 h-3.5 text-accent/60" />
                         {p.current_page || "Dashboard"}
                       </td>
-                      <td className="p-4 text-slate-400">
+                      <td className="p-4 text-theme-muted">
                         {getWorkbookName(p.current_workbook_id)}
                       </td>
                       <td className="p-4 text-success font-bold flex items-center gap-1 pt-4">
                         <Clock className="w-3.5 h-3.5 text-success/60" />
                         {formatDuration(p.session_start)}
                       </td>
-                      <td className="p-4 text-right text-slate-500">
+                      <td className="p-4 text-right text-theme-muted">
                         {new Date(p.last_seen).toLocaleTimeString()}
                       </td>
                     </tr>
@@ -267,39 +267,39 @@ const UserPresence: React.FC = () => {
             {/* Mobile Stacked Card View */}
             <div className="block md:hidden space-y-4">
               {activePresences.map((p) => (
-                <CyberCard key={p.user_id} className="space-y-3" variant={p.computedStatus === "online" ? "success" : "warning"}>
-                  <div className="flex justify-between items-start border-b border-cyan-500/10 pb-2">
+                  <CyberCard key={p.user_id} className="space-y-3" variant={p.computedStatus === "online" ? "success" : "warning"}>
+                  <div className="flex justify-between items-start border-b border-accent/10 pb-2">
                     <div>
-                      <div className="font-bold text-sm text-text font-mono">{p.username}</div>
-                      <div className="text-[10px] text-slate-500 mt-0.5 uppercase tracking-wider font-mono">
+                      <div className="font-bold text-sm text-text font-sans">{p.username}</div>
+                      <div className="text-[10px] text-theme-muted mt-0.5 uppercase tracking-wider font-sans">
                         Clearance: {getUserRoleString(p.user_id)}
                       </div>
                     </div>
                     {getStatusBadge(p.computedStatus)}
                   </div>
-                  <div className="grid grid-cols-2 gap-4 font-mono text-[11px] text-slate-300">
+                  <div className="grid grid-cols-2 gap-4 font-sans text-[11px] text-theme-secondary">
                     <div className="space-y-1">
-                      <span className="text-[9px] text-slate-500 uppercase tracking-widest block">Route Node</span>
-                      <span className="flex items-center gap-1"><Compass className="w-3 h-3 text-cyan-500" /> {p.current_page || "Dashboard"}</span>
+                      <span className="text-[9px] text-theme-muted uppercase tracking-widest block">Page</span>
+                      <span className="flex items-center gap-1"><Compass className="w-3 h-3 text-accent" /> {p.current_page || "Dashboard"}</span>
                     </div>
                     <div className="space-y-1">
-                      <span className="text-[9px] text-slate-500 uppercase tracking-widest block">Active Workbook</span>
+                      <span className="text-[9px] text-theme-muted uppercase tracking-widest block">Active Workbook</span>
                       <span className="truncate block max-w-[120px]">{getWorkbookName(p.current_workbook_id)}</span>
                     </div>
                     <div className="space-y-1">
-                      <span className="text-[9px] text-slate-500 uppercase tracking-widest block">Session Uptime</span>
+                      <span className="text-[9px] text-theme-muted uppercase tracking-widest block">Session Time</span>
                       <span className="text-success font-bold flex items-center gap-1"><Clock className="w-3 h-3 text-success" /> {formatDuration(p.session_start)}</span>
                     </div>
                     <div className="space-y-1">
-                      <span className="text-[9px] text-slate-500 uppercase tracking-widest block">Last Signal</span>
-                      <span className="text-slate-500">{new Date(p.last_seen).toLocaleTimeString()}</span>
+                      <span className="text-[9px] text-theme-muted uppercase tracking-widest block">Last Signal</span>
+                      <span className="text-theme-muted">{new Date(p.last_seen).toLocaleTimeString()}</span>
                     </div>
                   </div>
                 </CyberCard>
               ))}
               {activePresences.length === 0 && (
-                <div className="p-8 text-center text-muted font-mono italic border border-dashed border-cyan-500/20 rounded-xl">
-                  No active operator connection signals detected.
+                <div className="p-8 text-center text-muted font-sans italic border border-dashed border-accent/20 rounded-xl">
+                  No active connections detected.
                 </div>
               )}
             </div>
@@ -307,18 +307,18 @@ const UserPresence: React.FC = () => {
 
           {/* Workbook Activity Display */}
           <div className="space-y-4 pt-4">
-            <div className="flex items-center space-x-2 border-b border-cyan-500/20 pb-2">
+            <div className="flex items-center space-x-2 border-b border-accent/20 pb-2">
               <Eye className="w-4 h-4 text-primary" />
-              <h2 className="text-sm font-mono font-bold tracking-widest text-primary uppercase">
-                Active Workbook Collaboration Deck
+              <h2 className="text-sm font-sans font-bold tracking-widest text-primary uppercase">
+                Active Workbooks
               </h2>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {workbookViewers.map((item) => (
                 <CyberCard key={item.id} className="space-y-3" variant="primary">
-                  <div className="flex items-center justify-between border-b border-cyan-500/20 pb-2">
-                    <span className="text-xs font-mono font-black text-primary uppercase truncate max-w-[200px]">
+                  <div className="flex items-center justify-between border-b border-accent/20 pb-2">
+                    <span className="text-xs font-sans font-black text-primary uppercase truncate max-w-[200px]">
                       {item.name}
                     </span>
                     <CyberBadge variant="primary">
@@ -327,10 +327,10 @@ const UserPresence: React.FC = () => {
                   </div>
                   <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
                     {item.viewers.map((viewer) => (
-                      <div key={viewer.user_id} className="flex items-center justify-between p-2 bg-[#0a0f1d] border border-cyan-500/5 rounded font-mono text-[11px]">
+                      <div key={viewer.user_id} className="flex items-center justify-between p-2 bg-theme-card border border-accent/5 rounded font-sans text-[11px]">
                         <span className="font-bold text-text">{viewer.username}</span>
-                        <span className="text-slate-500">
-                          Viewing: <span className="text-cyan-400">{viewer.current_page}</span>
+                        <span className="text-theme-muted">
+                          Viewing: <span className="text-accent">{viewer.current_page}</span>
                         </span>
                       </div>
                     ))}
@@ -338,8 +338,8 @@ const UserPresence: React.FC = () => {
                 </CyberCard>
               ))}
               {workbookViewers.length === 0 && (
-                <div className="col-span-full p-8 text-center text-muted font-mono italic border border-dashed border-cyan-500/20 rounded-xl bg-black/20">
-                  No active workbooks are currently being viewed by active operators.
+                <div className="col-span-full p-8 text-center text-muted font-sans italic border border-dashed border-accent/20 rounded-xl bg-black/20">
+                  No active workbooks are currently being viewed.
                 </div>
               )}
             </div>

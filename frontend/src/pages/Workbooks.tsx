@@ -5,7 +5,7 @@ import { createWorksheet, getWorksheets } from "../services/worksheetService";
 import { createRow, createRowsBulk } from "../services/rowService";
 import { supabase } from "../services/supabaseClient";
 import { PageHeader } from "../components/ui/PageHeader";
-import { CyberTable, CyberColumn } from "../components/ui/CyberTable";
+import { CyberTable, PremiumColumn } from "../components/ui/CyberTable";
 import { CyberButton } from "../components/ui/CyberButton";
 import { CyberCard } from "../components/ui/CyberCard";
 import { CyberInput } from "../components/ui/CyberInput";
@@ -65,315 +65,122 @@ const Workbooks = () => {
   const [usersError, setUsersError] = useState<string | null>(null);
   const [users, setUsers] = useState<AssignableUser[]>([]);
   const [assignSuccess, setAssignSuccess] = useState<AssignableUser | null>(null);
-
+  
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
   const [workbookStats, setWorkbookStats] = useState<Record<string, { sheetsCount: number; rowsCount: number; lastModified: string }>>({});
   const [statsLoading, setStatsLoading] = useState(false);
 
-  const fetchWorkbooks = async () => {
-    const data = await getWorkbooks();
-    return data;
-  };
-
-  const { data, isLoading, error, refetch } = useQuery({ 
-    queryKey: ["workbooks"], 
-    queryFn: fetchWorkbooks 
-  });
+  const fetchWorkbooks = async () => await getWorkbooks();
+  const { data, isLoading, error, refetch } = useQuery({ queryKey: ["workbooks"], queryFn: fetchWorkbooks });
 
   useEffect(() => {
     if (!data || data.length === 0) return;
-
     const loadStats = async () => {
       setStatsLoading(true);
       try {
-        const { data: sheets, error: sheetsErr } = await supabase
-          .from("sheets")
-          .select("id, workbook_id, records_table_name, name, updated_at, created_at");
-        
-        if (sheetsErr) throw sheetsErr;
-
+        const { data: sheets } = await supabase.from("sheets").select("id, workbook_id, name");
         const statsMap: Record<string, { sheetsCount: number; rowsCount: number; lastModified: string }> = {};
-
         data.forEach((wb: any) => {
-          statsMap[wb.id] = {
-            sheetsCount: 0,
-            rowsCount: 0,
-            lastModified: wb.updated_at || wb.created_at || new Date().toISOString(),
-          };
+          statsMap[wb.id] = { sheetsCount: 0, rowsCount: 0, lastModified: new Date().toISOString() };
         });
-
-        const sheetPromises = (sheets || []).map(async (sheet) => {
+        await Promise.all((sheets || []).map(async (sheet) => {
           const wbId = sheet.workbook_id;
           if (!statsMap[wbId]) return;
-
           statsMap[wbId].sheetsCount += 1;
-
-          let count = 0;
-          const tableName = sheet.records_table_name || `records_${sheet.id}`;
           try {
-            const { count: dbCount, error } = await supabase
-              .from(tableName)
-              .select("*", { count: "exact", head: true });
-            
-            if (!error && dbCount !== null) {
-              count = dbCount;
-            } else {
-              const localData = localStorage.getItem(`local_rows_${sheet.id}`);
-              if (localData) {
-                count = JSON.parse(localData).length;
-              }
-            }
-          } catch {
-            const localData = localStorage.getItem(`local_rows_${sheet.id}`);
-            if (localData) {
-              count = JSON.parse(localData).length;
-            }
-          }
-
-          statsMap[wbId].rowsCount += count;
-
-          const sheetTime = new Date(sheet.updated_at || sheet.created_at || 0).getTime();
-          const currentMaxTime = new Date(statsMap[wbId].lastModified).getTime();
-          if (sheetTime > currentMaxTime) {
-            statsMap[wbId].lastModified = sheet.updated_at || sheet.created_at;
-          }
-        });
-
-        await Promise.all(sheetPromises);
+            const { count } = await supabase.from(`records_${sheet.id}`).select("*", { count: "exact", head: true });
+            if (count !== null) statsMap[wbId].rowsCount += count;
+          } catch {}
+        }));
         setWorkbookStats(statsMap);
-      } catch (err) {
-        console.error("Failed to load workbook stats:", err);
-      } finally {
-        setStatsLoading(false);
-      }
+      } catch {}
+      setStatsLoading(false);
     };
-
     loadStats();
   }, [data]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+    setImportError("");
+    setImportResult("");
     if (!/\.(xlsx|xls|csv)$/i.test(file.name)) {
       setImportError("Unsupported format. Please upload .xlsx, .xls, or .csv files.");
       return;
     }
-    
-    setImportError("");
-    setImportResult("");
-    
-    const startTime = Date.now();
-    const updateProgress = (progress: number, step: string, details?: Partial<typeof importState>) => {
-      setImportState(prev => ({ ...prev, progress, step, elapsed: Math.floor((Date.now() - startTime) / 1000), ...details }));
-    };
-    
-    setImportState({
-      isOpen: true,
-      progress: 5,
-      step: "Analyzing Workbook",
-      currentSheet: "",
-      currentRow: 0,
-      totalRows: 0,
-      sheetsProcessed: 0,
-      totalSheets: 0,
-      elapsed: 0,
-    });
-    
+    setImportState({ isOpen: true, progress: 5, step: "Analyzing Workbook", currentSheet: "", currentRow: 0, totalRows: 0, sheetsProcessed: 0, totalSheets: 0, elapsed: 0 });
     try {
       const arrayBuffer = await file.arrayBuffer();
       const workbook = XLSX.read(arrayBuffer, { type: "array" });
-      
       if (!workbook.SheetNames.length) {
         setImportError("Empty workbook file.");
         setImportState(prev => ({ ...prev, isOpen: false }));
         return;
       }
-      
-      updateProgress(15, "Detecting Sheets", { totalSheets: workbook.SheetNames.length, sheetsProcessed: 0 });
-      
+      const updateProgress = (progress: number, step: string, details?: Partial<typeof importState>) => {
+        setImportState(prev => ({ ...prev, progress, step, elapsed: Math.floor((Date.now() - (prev.elapsed ? Date.now() : Date.now())) / 1000), ...details }));
+      };
+      updateProgress(15, "Detecting Sheets", { totalSheets: workbook.SheetNames.length });
       updateProgress(25, "Creating Workbook Record");
       const wbRecord = await createWorkbook(file.name);
-      
-      let totalSheets = 0;
-      let totalColumns = 0;
       let totalRows = 0;
-      let processedSheets = 0;
-
-      const getColLetter = (n: number): string => {
-        let letter = "";
-        while (n >= 0) {
-          letter = String.fromCharCode((n % 26) + 65) + letter;
-          n = Math.floor(n / 26) - 1;
-        }
-        return letter;
-      };
-
-      const getHeaderName = (colVal: any, idx: number, allEmpty: boolean): string => {
-        if (allEmpty) {
-          return `Column ${getColLetter(idx)}`;
-        }
-        const valStr = String(colVal || '').trim();
-        if (!valStr) {
-          return `Unnamed: ${idx + 1}`;
-        }
-        return valStr;
-      };
-      
-      const sheetCount = workbook.SheetNames.length;
-      
       for (let i = 0; i < workbook.SheetNames.length; i++) {
         const sheetName = workbook.SheetNames[i];
         const ws = workbook.Sheets[sheetName];
         const jsonRows: any[] = XLSX.utils.sheet_to_json(ws, { header: 1 });
         if (jsonRows.length === 0) continue;
-        
-        totalSheets++;
-        processedSheets++;
-        updateProgress(
-          25 + Math.round((processedSheets / sheetCount) * 20),
-          "Importing Sheets",
-          { sheetsProcessed: processedSheets, currentSheet: sheetName }
-        );
-        
+        updateProgress(25 + ((i + 1) / workbook.SheetNames.length) * 20, "Importing Sheets", { currentSheet: sheetName, sheetsProcessed: i + 1 });
         const wsRecord = await createWorksheet(wbRecord.id, sheetName);
-        
         const headerRow = (jsonRows[0] as any[]) || [];
-        const allEmpty = headerRow.length === 0 || headerRow.every(val => val === null || val === undefined || String(val).trim() === "");
-        const processedHeaders = headerRow.map((col, idx) => getHeaderName(col, idx, allEmpty));
-        
-        const columnPromises = processedHeaders.map((colName, idx) => {
-          totalColumns++;
-          return supabase.from("columns").insert({
-            sheet_id: wsRecord.id,
-            name: colName,
-            inferred_type: "text",
-            is_hidden: false,
-            display_order: idx,
-          });
-        });
-        await Promise.all(columnPromises);
-        
-        const dataRowCount = jsonRows.length - 1;
-        const rowBatch: any[] = [];
-        
-        for (let r = 1; r < jsonRows.length; r++) {
-          const rowVals = jsonRows[r] as any[] || [];
+        await Promise.all(headerRow.map((col, idx) => 
+          supabase.from("columns").insert({ sheet_id: wsRecord.id, name: col || `Column ${idx}`, inferred_type: "text", is_hidden: false, display_order: idx })
+        ));
+        const rowBatch = (jsonRows.slice(1) as any[][]).map(row => {
           const rowData: Record<string, any> = {};
-          processedHeaders.forEach((col, idx) => {
-            const sanitizedKey = col.replace(/[^0-9a-zA-Z_]/g, '_').replace(/_+/g, '_').replace(/^_+|_+$/g, '').toLowerCase();
-            rowData[sanitizedKey] = rowVals[idx] !== undefined && rowVals[idx] !== null ? rowVals[idx] : "";
+          headerRow.forEach((col, idx) => {
+            const key = (col || `col_${idx}`).replace(/[^0-9a-zA-Z_]/g, '_').toLowerCase();
+            rowData[key] = row[idx] ?? "";
           });
-          totalRows++;
-          rowBatch.push(rowData);
-        }
-        
-        const sheetProgress = 45 + Math.round((totalRows / (sheetCount * 100)) * 20);
-        updateProgress(
-          Math.min(sheetProgress, 70),
-          "Importing Rows",
-          { 
-            currentSheet: sheetName,
-            currentRow: 0,
-            totalRows: dataRowCount,
-            sheetsProcessed: processedSheets,
-            totalSheets: sheetCount
-          }
-        );
-        
-        if (rowBatch.length > 0) {
-          await createRowsBulk(wsRecord.id, rowBatch);
-        }
+          return rowData;
+        });
+        totalRows += rowBatch.length;
+        if (rowBatch.length > 0) await createRowsBulk(wsRecord.id, rowBatch);
       }
-      
       updateProgress(95, "Finalizing");
-      
-      const totalImportMs = Date.now() - startTime;
-      const statusText = `Import Successful! ${totalSheets} sheet(s), ${totalColumns} col(s), ${totalRows} rows. Total: ${(totalImportMs/1000).toFixed(1)}s`;
-      setImportResult(statusText);
+      setImportResult(`Imported ${workbook.SheetNames.length} sheet(s), ${totalRows} rows.`);
       toast.success(`Workbook ingested: ${file.name}`);
       refetch();
-      
-      updateProgress(100, "Complete", { 
-        currentSheet: "", 
-        currentRow: 0, 
-        totalRows: 0 
-      });
-      
-      setTimeout(() => {
-        setImportState(prev => ({ ...prev, isOpen: false }));
-      }, 3000);
+      setTimeout(() => setImportState(prev => ({ ...prev, isOpen: false })), 3000);
     } catch (err: any) {
-      const errMsg = err.message || "Failed to ingest workbook data node.";
-      setImportError(errMsg);
-      toast.error(`Ingestion failure: ${errMsg}`);
+      setImportError(err.message || "Failed to ingest");
       setImportState(prev => ({ ...prev, isOpen: false }));
     }
   };
 
-  const handleArchiveWorkbook = async (id: string) => {
-    if (!window.confirm("Archive this workbook configuration?")) return;
-    try {
-      const { error } = await supabase.from("workbooks").delete().eq("id", id);
-      if (error) throw error;
-      toast.success("Workbook archived successfully");
-      refetch();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to archive workbook");
-    }
-  };
-  
-  const handleInspectWorkbook = async (workbookId: string) => {
-    setSelectedWbIdForSelector(workbookId);
-    setSelectorOpen(true);
-  };
-  
   const openRenameModal = (workbookId: string, currentName: string) => {
     setRenameWorkbookId(workbookId);
     setRenameWorkbookName(currentName);
     setRenameOpen(true);
   };
-  
-  const closeRenameModal = () => {
-    setRenameWorkbookId(null);
-    setRenameWorkbookName("");
-    setRenameOpen(false);
-  };
-  
+
   const saveWorkbookRename = async () => {
     if (!renameWorkbookId) return;
-    const newName = renameWorkbookName.trim();
-    if (!newName) {
-      toast.warning("Workbook name cannot be empty.");
-      return;
-    }
     try {
-      await updateWorkbook(renameWorkbookId, { name: newName });
-      toast.success("Workbook renamed successfully");
+      await updateWorkbook(renameWorkbookId, { name: renameWorkbookName });
+      toast.success("Workbook renamed");
       refetch();
-      closeRenameModal();
+      setRenameOpen(false);
     } catch (err: any) {
-      toast.error(err.message || "Failed to rename workbook");
+      toast.error(err.message || "Failed to rename");
     }
   };
-  
+
   const openAssignModal = async (workbookId: string, workbookName: string) => {
     setAssignWbId(workbookId);
     setAssignWbName(workbookName);
-    setSelectedUser(null);
-    setAssignCanEdit(true);
-    setAssignCanDelete(false);
-    setAssignCanExport(true);
-    setAssignNotesEnabled(true);
-    setAssignEntireWorkbook(true);
-    setUsersError(null);
-    setAssignSuccess(null);
-    
     setUsersLoading(true);
     try {
-      const loadedUsers = await getAssignableUsers();
-      setUsers(loadedUsers);
-      localStorage.setItem("workspace_users_cache", JSON.stringify(loadedUsers));
+      setUsers(await getAssignableUsers());
     } catch (err: any) {
       setUsersError(err.message || "Failed to load users");
     } finally {
@@ -381,332 +188,136 @@ const Workbooks = () => {
     }
     setAssignOpen(true);
   };
-  
-  const closeAssignModal = () => {
-    setAssignWbId(null);
-    setAssignWbName("");
-    setSelectedUser(null);
-    setUsers([]);
-    setAssignOpen(false);
-  };
-  
+
   const saveAssignWorkbook = async () => {
-    if (!assignWbId) {
-      toast.warning("Workbook required for assignment.");
+    if (!assignWbId || !selectedUser) {
+      toast.warning("Select a user");
       return;
     }
-    
-    if (!selectedUser) {
-      toast.warning("Select a user for assignment.");
-      return;
-    }
-    
     try {
-      const result = await assignWorkbook(
-        selectedUser.id, 
-        assignWbId, 
-        appUser?.id?.toString() || "superadmin", 
-        {
-          can_edit: assignCanEdit,
-          can_delete: assignCanDelete,
-          can_export: assignCanExport,
-          notes_enabled: assignNotesEnabled,
-          sheet_ids: assignEntireWorkbook ? undefined : []
-        }
-      );
-      
+      await assignWorkbook(selectedUser.id, assignWbId, appUser?.id?.toString() || "admin", {
+        can_edit: assignCanEdit, can_delete: assignCanDelete, can_export: assignCanExport, notes_enabled: assignNotesEnabled
+      });
       setAssignSuccess(selectedUser);
     } catch (err: any) {
-      toast.error(`Assignment failed: ${err.message}`);
-    }
-  };
-  
-  const openDeleteModal = (workbookId: string, workbookName: string) => {
-    setDeleteWorkbookId(workbookId);
-    setDeleteWorkbookName(workbookName);
-    setDeleteOpen(true);
-  };
-  
-  const closeDeleteModal = () => {
-    setDeleteWorkbookId(null);
-    setDeleteWorkbookName("");
-    setDeleteOpen(false);
-  };
-  
-  const handleDeleteWorkbook = async () => {
-    if (!deleteWorkbookId) return;
-    
-    try {
-      await deleteWorkbook(deleteWorkbookId, deleteWorkbookName, appUser?.id?.toString());
-      
-      const isDeleted = await verifyWorkbookDeleted(deleteWorkbookId);
-      if (!isDeleted) {
-        throw new Error("Workbook deletion verification failed");
-      }
-      
-      toast.success("WORKBOOK PURGED SUCCESSFULLY");
-      refetch();
-      closeDeleteModal();
-    } catch (err: any) {
-      toast.error(`WORKBOOK PURGE FAILED\nReason: ${err.message || "Unknown database error"}`);
+      toast.error(err.message || "Assignment failed");
     }
   };
 
-  const columns: CyberColumn[] = [
+  const handleDeleteWorkbook = async () => {
+    if (!deleteWorkbookId) return;
+    try {
+      await deleteWorkbook(deleteWorkbookId, deleteWorkbookName, appUser?.id?.toString());
+      toast.success("Workbook deleted");
+      refetch();
+      setDeleteOpen(false);
+    } catch (err: any) {
+      toast.error(err.message || "Delete failed");
+    }
+  };
+
+  const handleInspectWorkbook = (workbookId: string) => {
+    setSelectedWbIdForSelector(workbookId);
+    setSelectorOpen(true);
+  };
+
+  const columns: PremiumColumn[] = [
     {
-      header: "Workbook Name",
+      header: "Workbook",
       accessor: "name",
-      render: (row) => (
-        <span className="font-bold text-primary flex items-center">
-          <span className="mr-2 text-cyan-500/50">📊</span> {row.name}
-        </span>
-      ),
+      render: (row) => <span className="font-semibold text-primary">{row.name}</span>,
     },
     {
-      header: "Ingestion Date",
+      header: "Date",
       accessor: "uploaded_at",
-      render: (row) => (
-        <span className="text-muted text-xs">
-          {row.uploaded_at ? new Date(row.uploaded_at).toLocaleString() : "-"}
-        </span>
-      ),
+      render: (row) => <span className="text-secondary text-xs">{row.uploaded_at ? new Date(row.uploaded_at).toLocaleString() : "-"}</span>,
     },
   ];
 
-  const filteredData = (data || []).filter((wb: any) =>
-    wb.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredData = (data || []).filter((wb: any) => wb.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-mono font-black tracking-wider text-primary uppercase neon-text-primary">
-          Workbook Archives
-        </h1>
-        <p className="text-muted font-mono text-sm">
-          Tabular data nodes ingestion & configuration dashboard
-        </p>
+        <h1 className="text-2xl font-sans font-bold tracking-tight text-textPrimary">Workbooks</h1>
+        <p className="text-secondary font-sans text-sm">Import, manage and configure spreadsheet workbooks</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="space-y-6 lg:col-span-1">
-          <CyberCard variant="primary" className="space-y-4">
-            <h2 className="text-md font-mono font-bold tracking-widest text-primary uppercase border-b border-cyan-500/25 pb-2">
-              Data Ingestion Panel
-            </h2>
-            <p className="text-xs text-muted leading-relaxed font-mono">
-              Select an `.xlsx`, `.xls`, or `.csv` spreadsheet file to parse and map raw entries into active database segments.
-            </p>
+          <CyberCard className="space-y-4">
+            <h2 className="text-md font-sans font-semibold text-textPrimary border-b border-secondary/20 pb-2">Import Workbook</h2>
+            <p className="text-xs text-secondary">Select a .xlsx, .xls, or .csv file to import.</p>
 
-            <div className="border border-dashed border-cyan-500/30 bg-[#0a0f1d]/50 hover:bg-primary/5 rounded-lg p-6 transition-all duration-300 text-center relative cursor-pointer">
-              <input
-                type="file"
-                accept=".xlsx,.xls,.csv"
-                onChange={handleFileUpload}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                disabled={importState.isOpen}
-              />
-              <div className="space-y-2">
-                <span className="text-3xl text-primary/50 block">⚡</span>
-                <span className="text-xs font-mono font-bold text-primary uppercase tracking-wider block">
-                  Select Spreadsheet
-                </span>
-                <span className="text-[10px] text-gray-500 font-mono block">
-                  XLSX / XLS / CSV formats supported
-                </span>
-              </div>
-            </div>
+            <label className="flex flex-col items-center justify-center border border-dashed border-secondary/30 rounded-lg p-6 cursor-pointer hover:border-primary/30 transition-colors">
+              <span className="text-2xl mb-2">📄</span>
+              <span className="text-xs font-semibold text-primary">Select Spreadsheet</span>
+              <span className="text-[10px] text-secondary">XLSX/XLS/CSV supported</span>
+              <input type="file" accept=".xlsx,.xls,.csv" onChange={handleFileUpload} className="hidden" disabled={importState.isOpen} />
+            </label>
 
-            {importState.isOpen && (
-              <CyberProgressModal
-                isOpen={importState.isOpen}
-                progress={importState.progress}
-                step={importState.step}
-                currentSheet={importState.currentSheet}
-                currentRow={importState.currentRow}
-                totalRows={importState.totalRows}
-                sheetsProcessed={importState.sheetsProcessed}
-                totalSheets={importState.totalSheets}
-                elapsedTime={importState.elapsed}
-              />
-            )}
-
-            {importResult && (
-              <div className="p-3 bg-success/10 border border-success/40 rounded-lg">
-                <div className="text-xs font-mono text-success font-bold uppercase mb-1">Success</div>
-                <div className="text-[10px] font-mono text-success/90">{importResult}</div>
-              </div>
-            )}
-
-            {importError && (
-              <div className="p-3 bg-danger/10 border border-danger/40 rounded-lg">
-                <div className="text-xs font-mono text-danger font-bold uppercase mb-1">Error</div>
-                <div className="text-[10px] font-mono text-danger/90">{importError}</div>
-              </div>
-            )}
+            {importState.isOpen && <CyberProgressModal isOpen={importState.isOpen} progress={importState.progress} step={importState.step} elapsedTime={importState.elapsed} />}
           </CyberCard>
         </div>
 
         <div className="space-y-6 lg:col-span-2">
           <CyberCard className="space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-cyan-500/15 pb-3">
-              <h2 className="text-md font-mono font-bold tracking-widest text-primary uppercase">
-                Archive Registry
-              </h2>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-secondary/20 pb-3">
+              <h2 className="text-md font-sans font-semibold text-textPrimary">Workbooks</h2>
               <div className="flex items-center gap-2 w-full sm:w-auto">
                 <div className="w-full sm:w-60">
-                  <CyberInput
-                    type="text"
-                    placeholder="Filter archives..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                  />
+                  <CyberInput type="text" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} />
                 </div>
-                <div className="flex border border-cyan-500/30 rounded-lg p-0.5 bg-[#0a0f1d]/80">
-                  <button
-                    onClick={() => setViewMode("grid")}
-                    className={`p-1.5 rounded-md transition-all ${viewMode === "grid" ? "bg-cyan-500/20 text-cyan-400" : "text-slate-400 hover:text-slate-200"}`}
-                    title="Grid view"
-                  >
+                <div className="flex border border-secondary/20 rounded-lg p-0.5 bg-[var(--surface)]">
+                  <button onClick={() => setViewMode("grid")} className={`p-1.5 rounded-md transition-all ${viewMode === "grid" ? "bg-primary/10 text-primary" : "text-secondary"}`}>
                     <Grid className="w-4 h-4" />
                   </button>
-                  <button
-                    onClick={() => setViewMode("table")}
-                    className={`p-1.5 rounded-md transition-all ${viewMode === "table" ? "bg-cyan-500/20 text-cyan-400" : "text-slate-400 hover:text-slate-200"}`}
-                    title="Table view"
-                  >
+                  <button onClick={() => setViewMode("table")} className={`p-1.5 rounded-md transition-all ${viewMode === "table" ? "bg-primary/10 text-primary" : "text-secondary"}`}>
                     <List className="w-4 h-4" />
                   </button>
                 </div>
               </div>
             </div>
 
-            {isLoading || statsLoading ? (
-              <div className="p-10 text-center font-mono text-muted animate-pulse">
-                Querying workbook data nodes...
-              </div>
+            {isLoading ? (
+              <div className="p-10 text-center font-sans text-secondary">Loading...</div>
             ) : error ? (
-              <div className="p-10 text-center font-mono text-danger">
-                Failed to load archives from system storage.
-              </div>
+              <div className="p-10 text-center font-sans text-danger">Failed to load.</div>
             ) : filteredData.length === 0 ? (
-              <div className="p-10 text-center font-mono text-slate-500 border border-dashed border-cyan-500/10 rounded-lg">
-                No matching workbook configurations found.
-              </div>
+              <div className="p-10 text-center font-sans text-secondary border border-dashed border-secondary/20 rounded-lg">No workbooks found.</div>
             ) : viewMode === "grid" ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {filteredData.map((wb: any) => {
-                  const stats = workbookStats[wb.id] || { sheetsCount: 0, rowsCount: 0, lastModified: wb.updated_at || wb.created_at };
-                  return (
-                    <div
-                      key={wb.id}
-                      className="group relative bg-[#090e1a]/85 backdrop-blur border border-cyan-500/20 hover:border-cyan-500/40 rounded-xl p-5 transition-all duration-300 hover:shadow-[0_0_20px_rgba(0,229,255,0.08)] flex flex-col justify-between h-48 overflow-hidden"
-                    >
-                      {/* Scanning Line */}
-                      <div className="absolute inset-x-0 bottom-0 h-[1px] bg-gradient-to-r from-transparent via-cyan-500/35 to-transparent scale-x-0 group-hover:scale-x-100 transition-transform duration-500" />
-                      
-                      {/* Top corners */}
-                      <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-primary/40 group-hover:border-primary/80 transition-colors" />
-                      <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-primary/40 group-hover:border-primary/80 transition-colors" />
-                      
-                      <div>
-                        <div className="flex items-start justify-between">
-                          <h3 className="font-mono font-bold text-sm text-cyan-400 group-hover:text-cyan-300 transition-colors line-clamp-1 flex items-center gap-1.5 uppercase tracking-wide">
-                            <BookOpen className="w-4 h-4 text-cyan-500/70" />
-                            {wb.name}
-                          </h3>
-                        </div>
-                        
-                        <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] font-mono text-slate-400">
-                          <div className="flex items-center gap-1.5 bg-[#0e1526] px-2 py-1 rounded border border-cyan-500/5">
-                            <Layers className="w-3.5 h-3.5 text-primary/75" />
-                            <span>{stats.sheetsCount} Sheets</span>
-                          </div>
-                          <div className="flex items-center gap-1.5 bg-[#0e1526] px-2 py-1 rounded border border-cyan-500/5">
-                            <span className="text-primary/75 text-xs">⚡</span>
-                            <span>{stats.rowsCount.toLocaleString()} Rows</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Footer Actions */}
-                      <div className="flex items-center justify-between border-t border-cyan-500/10 pt-3 mt-auto">
-                        <span className="text-[9px] font-mono text-slate-500 flex items-center gap-1">
-                          <Clock className="w-3 h-3 text-cyan-400/40" />
-                          {stats.lastModified ? new Date(stats.lastModified).toLocaleDateString() : "-"}
-                        </span>
-                        
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => handleInspectWorkbook(wb.id)}
-                            className="p-1.5 rounded bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 hover:border-cyan-400 text-cyan-400 transition-all"
-                            title="Inspect Sheets"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => openRenameModal(wb.id, wb.name)}
-                            className="p-1.5 rounded bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 hover:border-purple-400 text-purple-400 transition-all"
-                            title="Rename Workbook"
-                          >
-                            <Edit3 className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => openAssignModal(wb.id, wb.name)}
-                            className="p-1.5 rounded bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 hover:border-emerald-400 text-emerald-400 transition-all"
-                            title="Assign Workbook"
-                          >
-                            <UserPlus className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => openDeleteModal(wb.id, wb.name)}
-                            className="p-1.5 rounded bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 hover:border-rose-400 text-rose-400 transition-all"
-                            title="Delete Workbook"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                {filteredData.map((wb: any) => (
+                  <div key={wb.id} className="glass-panel rounded-xl p-5 flex flex-col justify-between h-48 hover:shadow-lg transition-all">
+                    <div>
+                      <h3 className="font-semibold text-textPrimary flex items-center gap-1.5"><BookOpen className="w-4 h-4 text-secondary" />{wb.name}</h3>
+                      <div className="mt-3 text-xs text-secondary">
+                        <div className="flex items-center gap-1"><Layers className="w-3.5 h-3.5" />{(workbookStats[wb.id]?.sheetsCount || 0)} Sheets</div>
+                        <div>{(workbookStats[wb.id]?.rowsCount || 0).toLocaleString()} Rows</div>
                       </div>
                     </div>
-                  );
-                })}
+                    <div className="border-t border-secondary/20 pt-3 mt-auto flex justify-between">
+                      <span className="text-[9px] text-secondary flex items-center gap-1"><Clock className="w-3 h-3" />{wb.uploaded_at ? new Date(wb.uploaded_at).toLocaleDateString() : "-"}</span>
+                      <div className="flex gap-1">
+                        <button onClick={() => handleInspectWorkbook(wb.id)} className="p-1.5 rounded bg-secondary/10 hover:bg-secondary/20" title="View"><Eye className="w-3.5 h-3.5 text-secondary" /></button>
+                        <button onClick={() => openRenameModal(wb.id, wb.name)} className="p-1.5 rounded bg-primary/10 hover:bg-primary/20" title="Rename"><Edit3 className="w-3.5 h-3.5 text-primary" /></button>
+                        <button onClick={() => openAssignModal(wb.id, wb.name)} className="p-1.5 rounded bg-success/10 hover:bg-success/20" title="Assign"><UserPlus className="w-3.5 h-3.5 text-success" /></button>
+                        <button onClick={() => { setDeleteWorkbookId(wb.id); setDeleteWorkbookName(wb.name); setDeleteOpen(true); }} className="p-1.5 rounded bg-danger/10 hover:bg-danger/20" title="Delete"><Trash2 className="w-3.5 h-3.5 text-danger" /></button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : (
               <CyberTable
                 columns={columns}
                 data={filteredData}
                 actions={(row) => (
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <CyberButton
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => openRenameModal(row.id, row.name)}
-                      title="Rename workbook"
-                    >
-                      ✎
-                    </CyberButton>
-                    <CyberButton
-                      size="sm"
-                      variant="primary"
-                      onClick={() => handleInspectWorkbook(row.id)}
-                    >
-                      Inspect
-                    </CyberButton>
-                    <CyberButton
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => openAssignModal(row.id, row.name)}
-                      title="Assign workbook to user"
-                    >
-                      Assign
-                    </CyberButton>
-                    <CyberButton
-                      size="sm"
-                      variant="danger"
-                      onClick={() => openDeleteModal(row.id, row.name)}
-                    >
-                      Delete
-                    </CyberButton>
+                  <div className="flex gap-1.5">
+                    <CyberButton size="sm" variant="secondary" onClick={() => openRenameModal(row.id, row.name)}>✎</CyberButton>
+                    <CyberButton size="sm" variant="primary" onClick={() => handleInspectWorkbook(row.id)}>View</CyberButton>
+                    <CyberButton size="sm" variant="secondary" onClick={() => openAssignModal(row.id, row.name)}>Assign</CyberButton>
+                    <CyberButton size="sm" variant="danger" onClick={() => { setDeleteWorkbookId(row.id); setDeleteWorkbookName(row.name); setDeleteOpen(true); }}>Delete</CyberButton>
                   </div>
                 )}
               />
@@ -715,143 +326,51 @@ const Workbooks = () => {
         </div>
       </div>
 
-      <CyberModal isOpen={isRenameOpen} onClose={closeRenameModal} title="Rename Workbook">
-        <div className="space-y-4 font-mono text-xs">
-          <p className="text-slate-400 mb-2 leading-relaxed">
-            Enter a new name for this workbook configuration.
-          </p>
-          <CyberInput
-            type="text"
-            placeholder="New workbook name"
-            value={renameWorkbookName}
-            onChange={(e) => setRenameWorkbookName(e.target.value)}
-          />
-          <div className="flex justify-end gap-3 pt-4 border-t border-cyan-500/10">
-            <CyberButton type="button" onClick={closeRenameModal} variant="secondary">
-              Cancel
-            </CyberButton>
-            <CyberButton type="button" onClick={saveWorkbookRename} variant="primary">
-              Save
-            </CyberButton>
+      <CyberModal isOpen={isRenameOpen} onClose={() => setRenameOpen(false)} title="Rename Workbook">
+        <div className="space-y-4 font-sans text-xs">
+          <CyberInput type="text" value={renameWorkbookName} onChange={(e) => setRenameWorkbookName(e.target.value)} />
+          <div className="flex justify-end gap-3 pt-4 border-t border-secondary/20">
+            <CyberButton variant="secondary" onClick={() => setRenameOpen(false)}>Cancel</CyberButton>
+            <CyberButton variant="primary" onClick={saveWorkbookRename}>Save</CyberButton>
           </div>
         </div>
       </CyberModal>
 
-      <CyberModal isOpen={isDeleteOpen} onClose={closeDeleteModal} title="DELETE WORKBOOK">
-        <div className="space-y-4 font-mono text-xs">
-          <p className="text-slate-400 mb-2 leading-relaxed">
-            This action cannot be undone.
-          </p>
-          <div className="text-[10px] text-slate-300 space-y-1">
-            <p>The following will be removed:</p>
-            <ul className="list-disc list-inside pl-2 space-y-0.5 text-danger">
-              <li>Workbook</li>
-              <li>Sheets</li>
-              <li>Columns</li>
-              <li>Imported Records</li>
-              <li>Dashboard Links</li>
-              <li>Workbook Permissions</li>
-            </ul>
-          </div>
-          <div className="flex justify-end gap-3 pt-4 border-t border-cyan-500/10">
-            <CyberButton type="button" onClick={closeDeleteModal} variant="secondary">
-              CANCEL
-            </CyberButton>
-            <CyberButton type="button" onClick={handleDeleteWorkbook} variant="danger">
-              DELETE WORKBOOK
-            </CyberButton>
+      <CyberModal isOpen={isDeleteOpen} onClose={() => setDeleteOpen(false)} title="Delete Workbook">
+        <div className="space-y-4 font-sans text-xs">
+          <p className="text-secondary">This action cannot be undone. All data will be removed.</p>
+          <div className="flex justify-end gap-3 pt-4 border-t border-secondary/20">
+            <CyberButton variant="secondary" onClick={() => setDeleteOpen(false)}>Cancel</CyberButton>
+            <CyberButton variant="danger" onClick={handleDeleteWorkbook}>Delete</CyberButton>
           </div>
         </div>
       </CyberModal>
 
-      <SheetSelector
-        isOpen={isSelectorOpen}
-        onClose={() => setSelectorOpen(false)}
-        workbookId={selectedWbIdForSelector}
-        onSelect={(sheetId) => {
-          setSelectorOpen(false);
-          navigate(`/worksheets/${sheetId}`);
-        }}
-      />
-      
-      <CyberModal isOpen={isAssignOpen} onClose={closeAssignModal} title="ASSIGN WORKBOOK">
-        <div className="space-y-4 font-mono text-xs">
-          <p className="text-slate-400 mb-2">Assign workbook to a user with specific permissions.</p>
-          
+      <SheetSelector isOpen={isSelectorOpen} onClose={() => setSelectorOpen(false)} workbookId={selectedWbIdForSelector} onSelect={(sheetId) => { setSelectorOpen(false); navigate(`/worksheets/${sheetId}`); }} />
+
+      <CyberModal isOpen={isAssignOpen} onClose={() => setAssignOpen(false)} title="Assign Workbook">
+        <div className="space-y-4 font-sans text-xs">
           {assignSuccess ? (
-            <div className="p-4 bg-success/10 border border-success/40 rounded-lg">
-              <div className="text-xs font-bold text-success uppercase mb-2">Workbook Assigned Successfully</div>
-              <div className="text-[10px] text-slate-300 space-y-1">
-                <p><span className="text-success">Assigned User:</span> {assignSuccess.username || assignSuccess.email}</p>
-                <p><span className="text-success">Workbook:</span> {assignWbName}</p>
-                <p><span className="text-success">Permissions:</span> Edit: {assignCanEdit ? "Yes" : "No"}, Delete: {assignCanDelete ? "Yes" : "No"}, Export: {assignCanExport ? "Yes" : "No"}, Notes: {assignNotesEnabled ? "Yes" : "No"}</p>
-              </div>
+            <div className="p-4 bg-success/10 border border-success/30 rounded-lg">
+              <div className="text-xs font-bold text-success mb-2">Success</div>
+              <div className="text-[10px] text-secondary">Assigned to: {assignSuccess.username || assignSuccess.email}</div>
             </div>
+          ) : usersLoading ? (
+            <div className="p-3 text-center text-secondary">Loading users...</div>
           ) : (
             <div className="space-y-3">
-              <div>
-                <label className="block text-[10px] text-primary/80 uppercase mb-1">User</label>
-                {usersLoading ? (
-                  <div className="p-3 text-center text-muted animate-pulse">Loading users...</div>
-                ) : usersError ? (
-                  <div className="p-3 text-danger text-[10px]">{usersError}</div>
-                ) : users.length === 0 ? (
-                  <div className="p-3 text-slate-400 text-[10px]">No users found. Create users in the User Management page first.</div>
-                ) : (
-                  <CyberSelect
-                    placeholder="Select a user..."
-                    value={selectedUser?.id || ""}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      const user = users.find(u => u.id === val) || null;
-                      setSelectedUser(user);
-                    }}
-                    options={users.map(u => ({
-                      value: u.id,
-                      label: `${u.username || u.email}`,
-                      subtext: `${u.role || "viewer"}`
-                    }))}
-                  />
-                )}
-              </div>
-              
-              <div>
-                <label className="flex items-center gap-2 text-[10px] text-slate-300">
-                  <input type="checkbox" checked={assignEntireWorkbook} onChange={(e) => setAssignEntireWorkbook(e.target.checked)} className="accent-primary" />
-                  Assign Entire Workbook
-                </label>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-2">
-                <label className="flex items-center gap-2 text-[10px] text-slate-300">
-                  <input type="checkbox" checked={assignCanEdit} onChange={(e) => setAssignCanEdit(e.target.checked)} className="accent-primary" />
-                  Can Edit
-                </label>
-                <label className="flex items-center gap-2 text-[10px] text-slate-300">
-                  <input type="checkbox" checked={assignCanDelete} onChange={(e) => setAssignCanDelete(e.target.checked)} className="accent-primary" />
-                  Can Delete
-                </label>
-                <label className="flex items-center gap-2 text-[10px] text-slate-300">
-                  <input type="checkbox" checked={assignCanExport} onChange={(e) => setAssignCanExport(e.target.checked)} className="accent-primary" />
-                  Can Export
-                </label>
-                <label className="flex items-center gap-2 text-[10px] text-slate-300">
-                  <input type="checkbox" checked={assignNotesEnabled} onChange={(e) => setAssignNotesEnabled(e.target.checked)} className="accent-primary" />
-                  Notes Enabled
-                </label>
+              <CyberSelect placeholder="Select user..." value={selectedUser?.id || ""} onChange={(e) => setSelectedUser(users.find(u => u.id === e.target.value) || null)} options={users.map(u => ({ value: u.id, label: u.username || u.email }))} />
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <label className="flex items-center gap-2 text-secondary"><input type="checkbox" checked={assignCanEdit} onChange={(e) => setAssignCanEdit(e.target.checked)} className="accent-primary" />Can Edit</label>
+                <label className="flex items-center gap-2 text-secondary"><input type="checkbox" checked={assignCanDelete} onChange={(e) => setAssignCanDelete(e.target.checked)} className="accent-primary" />Can Delete</label>
+                <label className="flex items-center gap-2 text-secondary"><input type="checkbox" checked={assignCanExport} onChange={(e) => setAssignCanExport(e.target.checked)} className="accent-primary" />Can Export</label>
+                <label className="flex items-center gap-2 text-secondary"><input type="checkbox" checked={assignNotesEnabled} onChange={(e) => setAssignNotesEnabled(e.target.checked)} className="accent-primary" />Notes</label>
               </div>
             </div>
           )}
-          
-          <div className="flex justify-end gap-3 pt-4 border-t border-cyan-500/10">
-            <CyberButton type="button" onClick={closeAssignModal} variant="secondary">
-              {assignSuccess ? "Close" : "Cancel"}
-            </CyberButton>
-            {!assignSuccess && (
-              <CyberButton type="button" onClick={saveAssignWorkbook} variant="primary" disabled={!selectedUser}>
-                Assign Workbook
-              </CyberButton>
-            )}
+          <div className="flex justify-end gap-3 pt-4 border-t border-secondary/20">
+            <CyberButton variant={assignSuccess ? "secondary" : "secondary"} onClick={() => setAssignOpen(false)}>{assignSuccess ? "Close" : "Cancel"}</CyberButton>
+            {!assignSuccess && <CyberButton variant="primary" onClick={saveAssignWorkbook} disabled={!selectedUser}>Assign</CyberButton>}
           </div>
         </div>
       </CyberModal>

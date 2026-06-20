@@ -1,5 +1,4 @@
 import React, { FC, ReactNode } from "react";
-import { CyberCard } from "./CyberCard";
 
 interface CyberStatCardProps {
   title: string;
@@ -33,30 +32,25 @@ export const CyberStatCard: FC<CyberStatCardProps> = ({
   }[variant];
 
   return (
-    <CyberCard variant={variant} className={`relative flex flex-col justify-between overflow-hidden ${className}`}>
-      {/* Top row with title and icon */}
+    <div className={`relative flex flex-col justify-between overflow-hidden glass-panel rounded-lg shadow-card p-6 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl ${className}`}>
       <div className="flex items-center justify-between mb-4">
-        <span className="text-xs uppercase font-mono tracking-widest text-muted">
+        <span className="text-[10px] uppercase font-sans font-bold tracking-wider text-secondary">
           {title}
         </span>
         {icon && (
-          <div className={`text-lg opacity-85 ${accentColors}`}>
+          <div className={`text-base opacity-80 ${accentColors}`}>
             {icon}
           </div>
         )}
       </div>
-
-      {/* Main value display */}
       <div className="mb-2">
-        <h3 className={`text-3xl font-mono font-bold tracking-tight ${accentColors} neon-text-primary`}>
+        <h3 className="text-2xl font-sans font-bold tracking-tight text-textPrimary">
           {value}
         </h3>
       </div>
-
-      {/* Trend or Subtitle */}
       {(trend || subtitle) && (
-        <div className="flex items-center justify-between text-xs font-mono">
-          {subtitle && <span className="text-gray-500">{subtitle}</span>}
+        <div className="flex items-center justify-between text-[10px] font-sans">
+          {subtitle && <span className="text-secondary">{subtitle}</span>}
           {trend && (
             <span className={`ml-auto font-bold ${trend.isPositive ? "text-success" : "text-danger"}`}>
               {trend.isPositive ? "▲" : "▼"} {trend.value}
@@ -64,9 +58,6 @@ export const CyberStatCard: FC<CyberStatCardProps> = ({
           )}
         </div>
       )}
-
-      {/* Decorative scanning line animation */}
-      <div className="absolute inset-x-0 bottom-0 h-[1px] bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent animate-pulse" />
-    </CyberCard>
+    </div>
   );
 };

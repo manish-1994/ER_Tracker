@@ -1,5 +1,6 @@
 import { supabase } from "./supabaseClient";
 import { getWorkbooks } from "./workbookService";
+import { SHEET_TO_RECORD_TABLE } from "./rowService";
 import { getWorksheets } from "./worksheetService";
 
 export type StorageMetrics = {
@@ -46,51 +47,13 @@ const formatBytes = (bytes: number): string => {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
 };
 
-// Discover all records tables dynamically (from rowService)
+// Discover all records tables from static map
 let discoveredRecordsTables: string[] | null = null;
 
 const discoverRecordsTables = async (): Promise<string[]> => {
   if (discoveredRecordsTables) return discoveredRecordsTables;
-  
-  try {
-    const { data, error } = await supabase
-      .from("sheets")
-      .select("records_table_name")
-      .not("records_table_name", "is", null);
-      
-    if (error) throw error;
-    
-    const tables = (data ?? [])
-      .map((s: any) => s.records_table_name)
-      .filter(Boolean);
-      
-    discoveredRecordsTables = [...new Set(tables)];
-    return discoveredRecordsTables;
-  } catch (err) {
-    console.warn("[STORAGE SERVICE] Failed to discover tables from sheets metadata:", err);
-    // Fallback to baseline tables
-    discoveredRecordsTables = [
-      "records_82788dc9238b480b8b4040caef236409",
-      "records_4059d22372a6457ba4b8129667a5ac54",
-      "records_e61aaaa26fd043a3a2d764df2aa14024",
-      "records_408e6806fae64721b6932558ec6d4664",
-      "records_2ea3533fbc444fd3a5b979639e38dbb7",
-      "records_e06051ec060f4c0d968275577903d11f",
-      "records_f054686c1cc947eb820ad9390ab36513",
-      "records_8194a89493c74d3ba83643fe34b5fea1",
-      "records_036fe570b67740bb8890ad60ffcfa25e",
-      "records_fd2763f2ba5a404f82b6c86ea86c3cff",
-      "records_6070970ff3bf42d0b68ee4cd28fb9060",
-      "records_01d6a3666c9f44dc90935215c53116d1",
-      "records_b84c776822e74b60b561e3248cba8633",
-      "records_cff7af7ed0394995a732cccabc486fbd",
-      "records_86cff3dade0e4ded9fbc557537b39019",
-      "records_c1b4d64899f24d128df55c8127d34c03",
-      "records_e34e3cc1f2c048498d4282392164466f",
-      "records_66b58351b75a4f0497478590cc12f7da"
-    ];
-    return discoveredRecordsTables;
-  }
+  discoveredRecordsTables = [...new Set(Object.values(SHEET_TO_RECORD_TABLE))];
+  return discoveredRecordsTables;
 };
 
 // Estimate table size by counting rows (approximation)
@@ -331,7 +294,7 @@ export const getWorkbookAnalysis = async (): Promise<WorkbookAnalysis[]> => {
     for (const wb of workbooks) {
       const { data: sheets, error } = await supabase
         .from("sheets")
-        .select("id, name, records_table_name, updated_at")
+        .select("id, name")
         .eq("workbook_id", wb.id);
       
       if (error) continue;
@@ -341,7 +304,7 @@ export const getWorkbookAnalysis = async (): Promise<WorkbookAnalysis[]> => {
       
       for (const sheet of sheets || []) {
         // Try to count rows in the records table using resolved name
-        const tableName = sheet.records_table_name || localStorage.getItem(`sheet_table_map_${sheet.id}`);
+        const tableName = localStorage.getItem(`sheet_table_map_${sheet.id}`) || SHEET_TO_RECORD_TABLE[sheet.id];
         if (tableName) {
           try {
             const { count } = await supabase
